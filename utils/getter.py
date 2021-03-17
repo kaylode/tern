@@ -12,11 +12,11 @@ from tqdm import tqdm
 import torch.nn as nn
 import torch.utils.data as data
 from torch.utils.data import DataLoader
-from utils.utils import one_cycle
 import torchvision.models as models
 from torch.optim import SGD, AdamW
 from torch.optim.lr_scheduler import StepLR, CosineAnnealingLR, LambdaLR, ReduceLROnPlateau,OneCycleLR, CosineAnnealingWarmRestarts
 from utils.cuda import NativeScaler
+from transformers import AutoTokenizer
 
 from .random_seed import seed_everything
 
@@ -53,6 +53,10 @@ def get_lr_scheduler(optimizer, lr_config, **kwargs):
     step_per_epoch = False
 
     if scheduler_name == '1cycle-yolo':
+        def one_cycle(y1=0.0, y2=1.0, steps=100):
+            # lambda function for sinusoidal ramp from y1 to y2
+            return lambda x: ((1 - math.cos(x * math.pi / steps)) / 2) * (y2 - y1) + y1
+            
         lf = one_cycle(1, 0.158, kwargs['num_epochs'])  # cosine 1->hyp['lrf']
         scheduler = LambdaLR(optimizer, lr_lambda=lf)
         step_per_epoch = True
@@ -102,19 +106,18 @@ def get_dataset_and_dataloader(config):
     train_transforms = get_augmentation(config, _type = 'train')
     val_transforms = get_augmentation(config, _type = 'val')
     
-    trainset = ImageClassificationDataset(
+    trainset = RetrievalDataset(
         config = config,
-        img_dir = os.path.join('data', config.project_name, config.train_imgs),
+        root = os.path.join('data', config.project_name, config.train_imgs),
+        csv_in = os.path.join('data', config.project_name, config.train_anns),
+        tokenizer = AutoTokenizer.from_pretrained(config.text_extractor),
         transforms=train_transforms)
     
-    valset = ImageClassificationDataset(
+    valset = RetrievalDataset(
         config = config,
-        img_dir=os.path.join('data', config.project_name, config.val_imgs), 
-        transforms=val_transforms)
-    
-    testset = ImageClassificationDataset(
-        config = config,
-        img_dir=os.path.join('data', config.project_name, config.val_imgs), 
+        root = os.path.join('data', config.project_name, config.val_imgs),
+        csv_in = os.path.join('data', config.project_name, config.val_anns),
+        tokenizer = AutoTokenizer.from_pretrained(config.text_extractor),
         transforms=val_transforms)
 
     trainloader = DataLoader(
@@ -133,5 +136,5 @@ def get_dataset_and_dataloader(config):
         num_workers= config.num_workers, 
         pin_memory=True)
 
-    return  trainset, valset, testset, trainloader, valloader
+    return  trainset, valset, trainloader, valloader
 

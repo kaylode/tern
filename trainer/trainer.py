@@ -7,7 +7,7 @@ import numpy as np
 from loggers.loggers import Logger
 import time
 from torch.cuda import amp
-from utils.gradcam import GradCam, show_cam_on_image
+# from utils.gradcam import GradCam, show_cam_on_image
 from augmentations import Denormalize
 
 class Trainer():
@@ -84,39 +84,34 @@ class Trainer():
             
             start_time = time.time()
             
-            if self.use_amp:
-                with amp.autocast():
-                    loss, loss_dict = self.model.training_step(batch)
-                self.model.scaler(loss, self.optimizer, clip_grad=self.clip_grad, parameters=self.model.parameters())
-            else:
+            with amp.autocast(enabled=self.use_amp):
                 loss, loss_dict = self.model.training_step(batch)
-                loss.backward()
-            
-                if self.clip_grad is not None:
-                    clip_gradient(self.optimizer, self.clip_grad)
+                if self.use_accumulate:
+                    loss /= self.accumulate_steps
 
+            self.model.scaler(loss, self.optimizer)
+            
             if self.use_accumulate:
                 if (i+1) % self.accumulate_steps == 0 or i == len(self.trainloader)-1:
-                    if not self.use_amp:
-                        self.optimizer.step()
-                    else:
-                        self.model.scaler.step(self.optimizer)
-                    if self.scheduler is not None and not self.step_per_epoch:
-                        self.scheduler.step()
+                    self.model.scaler.step(self.optimizer, clip_grad=self.clip_grad, parameters=self.model.parameters())
                     self.optimizer.zero_grad()
+
+                    if self.scheduler is not None and not self.step_per_epoch:
+                        self.scheduler.step((self.num_epochs + i) / len(self.trainloader))
+                        lrl = [x['lr'] for x in self.optimizer.param_groups]
+                        lr = sum(lrl) / len(lrl)
+                        log_dict = {'Learning rate/Iterations': lr}
+                        self.logging(log_dict)
             else:
-                if not self.use_amp:
-                    self.optimizer.step()
-                else:
-                    self.model.scaler.step(self.optimizer)
+                self.model.scaler.step(self.optimizer, clip_grad=self.clip_grad, parameters=self.model.parameters())
+                self.optimizer.zero_grad()
                 if self.scheduler is not None and not self.step_per_epoch:
                     # self.scheduler.step()
-                    self.scheduler.step(self.num_epochs + i / len(self.trainloader))
+                    self.scheduler.step((self.num_epochs + i) / len(self.trainloader))
                     lrl = [x['lr'] for x in self.optimizer.param_groups]
                     lr = sum(lrl) / len(lrl)
                     log_dict = {'Learning rate/Iterations': lr}
                     self.logging(log_dict)
-                self.optimizer.zero_grad()
                 
             torch.cuda.synchronize()
 
@@ -189,12 +184,12 @@ class Trainer():
         self.logging(log_dict)
 
         # Save model gives best mAP score
-        if metric_dict['acc'] > self.best_value:
-            self.best_value = metric_dict['acc']
-            self.checkpoint.save(self.model, save_mode = 'best', epoch = self.epoch, iters = self.iters, best_value=self.best_value)
+        # if metric_dict['acc'] > self.best_value:
+        #     self.best_value = metric_dict['acc']
+        #     self.checkpoint.save(self.model, save_mode = 'best', epoch = self.epoch, iters = self.iters, best_value=self.best_value)
 
-        if self.visualize_when_val:
-            self.visualize_batch()
+        # if self.visualize_when_val:
+        #     self.visualize_batch()
 
     def visualize_batch(self):
         # Vizualize Grad Class Activation Mapping
@@ -250,7 +245,7 @@ class Trainer():
     def set_attribute(self, kwargs):
         self.checkpoint = None
         self.scheduler = None
-        self.clip_grad = None
+        self.clip_grad = 10.0
         self.logger = None
         self.visualize_when_val = True
         self.step_per_epoch = False

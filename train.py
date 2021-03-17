@@ -13,32 +13,29 @@ def train(args, config):
 
     device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
 
-    trainset, valset, testset, trainloader, valloader = get_dataset_and_dataloader(config)
+    
+    trainset, valset, trainloader, valloader = get_dataset_and_dataloader(config)
   
-    net = BaseTimmModel(
-        name=config.model_name, 
-        num_classes=trainset.num_classes)
-
     if args.saved_path is not None:
-        args.saved_path = os.path.join(args.saved_path, args.config)
+        args.saved_path = os.path.join(args.saved_path, config.project_name)
 
     if args.log_path is not None:
-        args.log_path = os.path.join(args.log_path, args.config)
+        args.log_path = os.path.join(args.log_path, config.project_name)
+    return
+    # if config.tta:
+    #     config.tta = TTA(
+    #         min_conf=config.min_conf_val, 
+    #         min_iou=config.min_iou_val, 
+    #         postprocess_mode=config.tta_ensemble_mode)
+    # else:
+    #     config.tta = None
 
-    if config.tta:
-        config.tta = TTA(
-            min_conf=config.min_conf_val, 
-            min_iou=config.min_iou_val, 
-            postprocess_mode=config.tta_ensemble_mode)
-    else:
-        config.tta = None
-
-    metric = [
-        AccuracyMetric(),
-        BalancedAccuracyMetric(num_classes=trainset.num_classes), 
-        ConfusionMatrix(trainset.classes), 
-        F1ScoreMetric(n_classes=trainset.num_classes)
-    ]
+    # metric = [
+    #     AccuracyMetric(),
+    #     BalancedAccuracyMetric(num_classes=trainset.num_classes), 
+    #     ConfusionMatrix(trainset.classes), 
+    #     F1ScoreMetric(n_classes=trainset.num_classes)
+    # ]
 
     optimizer, optimizer_params = get_lr_policy(config.lr_policy)
 
@@ -47,11 +44,13 @@ def train(args, config):
     else:
         scaler = None
 
-    model = Classifier(
+    net = get_model(args, config)
+
+    model = Retrieval(
             model = net,
-            metrics=metric,
+            #metrics=metric,
             scaler=scaler,
-            criterion=nn.CrossEntropyLoss(),
+            criterion=NTXentLoss(),
             optimizer= optimizer,
             optim_params = optimizer_params,     
             device = device)
@@ -91,15 +90,13 @@ def train(args, config):
     print(config)
     print(f'Training with {num_gpus} gpu(s)')
     print(f"Start training at [{start_epoch}|{start_iter}]")
-    print(f"Current best MAP: {best_value}")
     
-    trainer.fit(start_epoch = start_epoch, start_iter = start_iter, num_epochs=config.num_epochs, print_per_iter=args.print_per_iter)
+    # trainer.fit(start_epoch = start_epoch, start_iter = start_iter, num_epochs=config.num_epochs, print_per_iter=args.print_per_iter)
 
     
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('Training EfficientDet')
-    parser.add_argument('config' , default='config', type=str, help='project file that contains parameters')
     parser.add_argument('--print_per_iter', type=int, default=300, help='Number of iteration to print')
     parser.add_argument('--val_interval', type=int, default=2, help='Number of epoches between valing phases')
     parser.add_argument('--no_visualization', action='store_false', help='whether to visualize box to ./sample when validating (for debug), default=on')
@@ -111,7 +108,7 @@ if __name__ == '__main__':
     parser.add_argument('--freeze_backbone', action='store_true', help='whether to freeze the backbone')
     
     args = parser.parse_args()
-    config = Config(os.path.join('configs',args.config+'.yaml'))
+    config = Config(os.path.join('configs','config.yaml'))
 
     train(args, config)
     

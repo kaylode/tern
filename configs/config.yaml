@@ -1,31 +1,28 @@
 settings:
   #################   DATASET CONFIG   ###################
 
-  project_name: "512-cls"    # also the folder name of the dataset that under ./data folder
-  train_imgs: train
-  val_imgs: val
-  test_imgs: test
+  project_name: "shopee-matching"    # also the folder name of the dataset that under ./data folder
+  train_imgs: images/train
+  val_imgs: images/train
+  test_imgs: images/test
+  train_anns: annotations/train_clean.csv
+  val_anns: annotations/train_clean.csv
 
-  obj_list: [
-      "No Finding",
-      "Finding"
-  ]
-  
   #################   TRAINING CONFIG   ###################
   
-  model_name: 'efficientnet_b6' #[]
+  model_name: 'efficient_bert'
+  image_extractor: 'efficientnet_b0' 
+  text_extractor: 'bert-base-uncased' 
 
-  pretrained_backbone: ''                  # Pretrained backbone
+  #pretrained_backbone: ''                  # Pretrained backbone
   
   gpu_devices: '0'                     # supports multi-gpus
   num_epochs: 100
   batch_size: 8
   num_workers: 4
   
-  image_size: [512,512]               # should be square to prevent bugs [512, 640, 768, 896, 1024, 1280, 1280, 1536, 1536]
+  image_size: [224,224]               # should be square to prevent bugs [512, 640, 768, 896, 1024, 1280, 1280, 1536, 1536]
   keep_ratio: False                     # whether to use resize padding
-
-  mixup: True
 
   # learning rate policy
   lr_policy:
