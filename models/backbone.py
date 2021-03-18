@@ -12,12 +12,14 @@ def get_model(args, config):
         out_dim=512,
         freeze_layers=[0,1,2,3,4,5])
     
+    net = nn.DataParallel(net)
+    
     return net
 
 class Extractor(nn.Module):
     def __init__(self, cnn_base_model, bert_base_model, out_dim, freeze_layers=None):
         super(Extractor, self).__init__()    
-
+        
         # Text extractor
         self.text_extractor = _get_bert_basemodel(bert_base_model,freeze_layers)
         self.image_extractor = _get_cnn_basemodel(cnn_base_model)
@@ -44,7 +46,8 @@ class Extractor(nn.Module):
 
     def forward(self, batch, device):
         image = batch['imgs'].to(device)
-        encoded_text = batch['txts'].to(device)
+        encoded_text = batch['txts']
+        encoded_text = {k:v.to(device) for k,v in encoded_text.items()}
         img_feats = self.image_encoder(image)
         txt_feats = self.text_encoder(encoded_text)
 

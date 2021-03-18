@@ -9,14 +9,13 @@ import sys
 sys.path.append('..')
 
 class Retrieval(BaseModel):
-    def __init__(self, model, n_classes, **kwargs):
+    def __init__(self, model, **kwargs):
         super(Retrieval, self).__init__(**kwargs)
         self.model = model
-        self.model_name = self.model.name
+        self.model_name = "efficient_bert"
         if self.optimizer is not None:
             self.optimizer = self.optimizer(self.parameters(), lr= self.lr)
             self.set_optimizer_params()
-        self.n_classes = n_classes
 
         if self.freeze:
             for params in self.model.parameters():
@@ -49,7 +48,7 @@ class Retrieval(BaseModel):
         loss_dict = {k:v.item() for k,v in output.items()}
         loss = output['T']
 
-        #self.update_metrics(model=self)
+        self.update_metrics(model=self)
         #self.update_metrics(outputs = outputs, targets = targets)
 
         return loss, loss_dict
