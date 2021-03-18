@@ -14,10 +14,11 @@ import torch.utils.data as data
 from torch.utils.data import DataLoader
 import torchvision.models as models
 from torch.optim import SGD, AdamW
+import math
 from torch.optim.lr_scheduler import StepLR, CosineAnnealingLR, LambdaLR, ReduceLROnPlateau,OneCycleLR, CosineAnnealingWarmRestarts
 from utils.cuda import NativeScaler
 from transformers import AutoTokenizer
-
+from losses import NTXentLoss
 from .random_seed import seed_everything
 
 
@@ -123,7 +124,7 @@ def get_dataset_and_dataloader(config):
     trainloader = DataLoader(
         trainset, 
         batch_size=config.batch_size, 
-        shuffle = True, 
+        shuffle = False, 
         collate_fn=trainset.collate_fn, 
         num_workers= config.num_workers, 
         pin_memory=True)
