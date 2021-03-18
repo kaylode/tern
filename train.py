@@ -21,7 +21,7 @@ def train(args, config):
 
     if args.log_path is not None:
         args.log_path = os.path.join(args.log_path, config.project_name)
-    return
+    
     # if config.tta:
     #     config.tta = TTA(
     #         min_conf=config.min_conf_val, 
@@ -30,12 +30,9 @@ def train(args, config):
     # else:
     #     config.tta = None
 
-    # metric = [
-    #     AccuracyMetric(),
-    #     BalancedAccuracyMetric(num_classes=trainset.num_classes), 
-    #     ConfusionMatrix(trainset.classes), 
-    #     F1ScoreMetric(n_classes=trainset.num_classes)
-    # ]
+    metric = [
+        MeanF1Score(valloader, trainloader, top_k=50)    
+    ]
 
     optimizer, optimizer_params = get_lr_policy(config.lr_policy)
 
@@ -48,7 +45,7 @@ def train(args, config):
 
     model = Retrieval(
             model = net,
-            #metrics=metric,
+            metrics=metric,
             scaler=scaler,
             criterion=NTXentLoss(),
             optimizer= optimizer,
@@ -91,13 +88,13 @@ def train(args, config):
     print(f'Training with {num_gpus} gpu(s)')
     print(f"Start training at [{start_epoch}|{start_iter}]")
     
-    # trainer.fit(start_epoch = start_epoch, start_iter = start_iter, num_epochs=config.num_epochs, print_per_iter=args.print_per_iter)
+    trainer.fit(start_epoch = start_epoch, start_iter = start_iter, num_epochs=config.num_epochs, print_per_iter=args.print_per_iter)
 
     
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('Training EfficientDet')
-    parser.add_argument('--print_per_iter', type=int, default=300, help='Number of iteration to print')
+    parser.add_argument('--print_per_iter', type=int, default=50, help='Number of iteration to print')
     parser.add_argument('--val_interval', type=int, default=2, help='Number of epoches between valing phases')
     parser.add_argument('--no_visualization', action='store_false', help='whether to visualize box to ./sample when validating (for debug), default=on')
     parser.add_argument('--save_interval', type=int, default=1000, help='Number of steps between saving')

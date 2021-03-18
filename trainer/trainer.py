@@ -9,6 +9,7 @@ import time
 from torch.cuda import amp
 # from utils.gradcam import GradCam, show_cam_on_image
 from augmentations import Denormalize
+from utils.utils import draw_retrieval_results
 
 class Trainer():
     def __init__(self,
@@ -183,10 +184,10 @@ class Trainer():
         log_dict.update(metric_dict)
         self.logging(log_dict)
 
-        # Save model gives best mAP score
-        # if metric_dict['acc'] > self.best_value:
-        #     self.best_value = metric_dict['acc']
-        #     self.checkpoint.save(self.model, save_mode = 'best', epoch = self.epoch, iters = self.iters, best_value=self.best_value)
+        # Save model gives best mf1 score
+        if metric_dict['mean-f1'] > self.best_value:
+            self.best_value = metric_dict['mean-f1']
+            self.checkpoint.save(self.model, save_mode = 'best', epoch = self.epoch, iters = self.iters, best_value=self.best_value)
 
         # if self.visualize_when_val:
         #     self.visualize_batch()
@@ -196,25 +197,31 @@ class Trainer():
         if not os.path.exists('./samples'):
             os.mkdir('./samples')
 
-        denom = Denormalize()
+        # Retrieval dict {post_id: [most relevant post ids]}
+        retrieval_results = np.load('./results/query_results.txt', allow_pickle=True)
+        
         batch = next(iter(self.valloader))
-        images = batch["imgs"]
-        #targets = batch["targets"]
+        post_ids = batch['post_ids'][:3]
 
-        self.model.eval()
+        df = pd.read_csv('./data/shopee-matching/annotations/train_clean.csv')
+        for idx, post_id in enumerate(post_ids):
+            query_post = df[df.posting_id == post_id]
+            query_image = os.path.join(root, query_post.image.values[0])
+            query_title = query_post.cleaned_title.values[0]
+            queries = [[query_image, query_title]]
 
-        config_name = self.cfg.model_name.split('_')[0]
-        grad_cam = GradCam(model=self.model.model, config_name= config_name)
+            gallery_post_ids = retrieval_results[post_id]
+            top_k_relevant_posts = df[df.posting_id.isin(gallery_post_ids)]
+            top_k_relevant_posts = [
+                (os.path.join(root,image_name), title) for (image_name, title) in zip(
+                    top_k_relevant_posts['image'], 
+                    top_k_relevant_posts['cleaned_title'])
+                ]
 
-        for idx, inputs in enumerate(images):
             image_outname = os.path.join('samples', f'{self.epoch}_{self.iters}_{idx}.jpg')
-            img_show = denom(inputs)
-            inputs = inputs.to(self.model.device)
-            target_category = None
-            grayscale_cam, label_idx = grad_cam(inputs, target_category)
-            label = self.cfg.obj_list[label_idx]
-            img_cam = show_cam_on_image(img_show, grayscale_cam, label)
-            cv2.imwrite(image_outname, img_cam)
+           
+            draw_retrieval_results(queries, top_k_relevant_posts, image_outname)
+
 
 
     def logging(self, logs):
