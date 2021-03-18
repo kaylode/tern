@@ -25,10 +25,13 @@ class NTXentLoss(nn.Module):
         loss_vu = self.ce(similarity_vu, targets)
         loss_uv = self.ce(similarity_uv, targets)
 
+        loss_vu = loss_vu.mean()
+        loss_uv = loss_uv.mean()
+        
         total_loss = self.weight*loss_vu + (1-self.weight)*loss_uv
 
         return {
             'T': total_loss, 
-            'I-T': loss_vu
-            'TI': loss_uv
+            'I-T': loss_vu,
+            'T-I': loss_uv
         }
