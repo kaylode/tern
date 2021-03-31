@@ -6,6 +6,7 @@ from .checkpoint import Checkpoint
 import numpy as np
 from loggers.loggers import Logger
 import time
+import pandas as pd
 from torch.cuda import amp
 # from utils.gradcam import GradCam, show_cam_on_image
 from augmentations import Denormalize
@@ -189,8 +190,8 @@ class Trainer():
             self.best_value = metric_dict['mean-f1']
             self.checkpoint.save(self.model, save_mode = 'best', epoch = self.epoch, iters = self.iters, best_value=self.best_value)
 
-        # if self.visualize_when_val:
-        #     self.visualize_batch()
+        if self.visualize_when_val:
+            self.visualize_batch()
 
     def visualize_batch(self):
         # Vizualize Grad Class Activation Mapping
@@ -198,26 +199,30 @@ class Trainer():
             os.mkdir('./samples')
 
         # Retrieval dict {post_id: [most relevant post ids]}
-        retrieval_results = np.load('./results/query_results.txt', allow_pickle=True)
+        retrieval_results = np.load('./results/query_results.npy', allow_pickle=True)
         
         batch = next(iter(self.valloader))
         post_ids = batch['post_ids'][:3]
 
+        query_pool = os.path.join('data', self.cfg.project_name, self.cfg.val_imgs)
+        gallery_pool = os.path.join('data', self.cfg.project_name, self.cfg.train_imgs)
         df = pd.read_csv('./data/shopee-matching/annotations/train_clean.csv')
         for idx, post_id in enumerate(post_ids):
             query_post = df[df.posting_id == post_id]
-            query_image = os.path.join(root, query_post.image.values[0])
+            query_image = os.path.join(query_pool, query_post.image.values[0])
             query_title = query_post.cleaned_title.values[0]
             queries = [[query_image, query_title]]
 
-            gallery_post_ids = retrieval_results[post_id]
-            top_k_relevant_posts = df[df.posting_id.isin(gallery_post_ids)]
+            gallery_post_ids = retrieval_results.item()[post_id][:5]
+            top_k_relevant_post_scores = gallery_post_ids['scores']
+            top_k_relevant_post_indexes = gallery_post_ids['indexes']
+            top_k_relevant_posts = df[df.posting_id.isin(top_k_relevant_post_indexes)]
             top_k_relevant_posts = [
-                (os.path.join(root,image_name), title) for (image_name, title) in zip(
+                (os.path.join(gallery_pool,image_name), title) for (image_name, title) in zip(
                     top_k_relevant_posts['image'], 
                     top_k_relevant_posts['cleaned_title'])
-                ]
-
+            ]
+  
             image_outname = os.path.join('samples', f'{self.epoch}_{self.iters}_{idx}.jpg')
            
             draw_retrieval_results(queries, top_k_relevant_posts, image_outname)

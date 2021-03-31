@@ -21,14 +21,6 @@ def train(args, config):
 
     if args.log_path is not None:
         args.log_path = os.path.join(args.log_path, config.project_name)
-    
-    # if config.tta:
-    #     config.tta = TTA(
-    #         min_conf=config.min_conf_val, 
-    #         min_iou=config.min_iou_val, 
-    #         postprocess_mode=config.tta_ensemble_mode)
-    # else:
-    #     config.tta = None
 
     metric = [
         MeanF1Score(valloader, trainloader, top_k=50)    
