@@ -113,8 +113,8 @@ def get_dataset_and_dataloader(config):
         root = os.path.join('data', config.project_name, config.train_imgs),
         csv_in = os.path.join('data', config.project_name, config.train_anns),
         tokenizer = AutoTokenizer.from_pretrained(config.text_extractor),
-        transforms=train_transforms,
-        text_transforms=txt_transforms)
+        transforms=train_transforms)
+        # text_transforms=txt_transforms)
     
     valset = RetrievalDataset(
         config = config,
