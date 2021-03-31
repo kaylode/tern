@@ -23,7 +23,7 @@ def train(args, config):
         args.log_path = os.path.join(args.log_path, config.project_name)
 
     metric = [
-        MeanF1Score(valloader, trainloader, top_k=50)    
+        MeanF1Score(valloader, trainloader, top_k=5)    
     ]
 
     optimizer, optimizer_params = get_lr_policy(config.lr_policy)
@@ -94,7 +94,7 @@ if __name__ == '__main__':
     parser.add_argument('--resume', type=str, default=None,
                         help='whether to load weights from a checkpoint, set None to initialize')
     parser.add_argument('--saved_path', type=str, default='./weights')
-    parser.add_argument('--freeze_backbone', action='store_true', help='whether to freeze the backbone')
+    parser.add_argument('--freeze_cnn', action='store_true', help='whether to freeze the backbone')
     
     args = parser.parse_args()
     config = Config(os.path.join('configs','config.yaml'))

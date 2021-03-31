@@ -10,19 +10,23 @@ def get_model(args, config):
         cnn_base_model=config.image_extractor,
         bert_base_model=config.text_extractor,
         out_dim=512,
-        freeze_layers=[0,1,2,3,4,5])
+        freeze_layers=[0,1,2,3,4,5],
+        freeze_cnn=args.freeze_cnn)
     
     net = nn.DataParallel(net)
     
     return net
 
 class Extractor(nn.Module):
-    def __init__(self, cnn_base_model, bert_base_model, out_dim, freeze_layers=None):
+    def __init__(self, cnn_base_model, bert_base_model, out_dim, freeze_layers=None, freeze_cnn=False):
         super(Extractor, self).__init__()    
         
         # Text extractor
         self.text_extractor = _get_bert_basemodel(bert_base_model,freeze_layers)
         self.image_extractor = _get_cnn_basemodel(cnn_base_model)
+
+        if self.freeze_cnn:
+            self.image_extractor.freeze()
 
         self.embedding_imgs = nn.Sequential(
             nn.Linear(self.image_extractor.feature_dim, self.image_extractor.feature_dim),
