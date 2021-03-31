@@ -106,13 +106,15 @@ def get_dataset_and_dataloader(config):
     
     train_transforms = get_augmentation(config, _type = 'train')
     val_transforms = get_augmentation(config, _type = 'val')
+    txt_transforms = TextAugmentation()
     
     trainset = RetrievalDataset(
         config = config,
         root = os.path.join('data', config.project_name, config.train_imgs),
         csv_in = os.path.join('data', config.project_name, config.train_anns),
         tokenizer = AutoTokenizer.from_pretrained(config.text_extractor),
-        transforms=train_transforms)
+        transforms=train_transforms,
+        text_transforms=txt_transforms)
     
     valset = RetrievalDataset(
         config = config,

@@ -8,11 +8,12 @@ import numpy as np
 
 
 class RetrievalDataset(data.Dataset):
-    def __init__(self, config, root, csv_in, transforms=None, tokenizer=None):
+    def __init__(self, config, root, csv_in, transforms=None, text_transforms=None, tokenizer=None):
         self.config = config
         self.df = pd.read_csv(csv_in)
         self.root = root
         self.transforms = transforms
+        self.text_transforms = text_transforms
         self.tokenizer = tokenizer
         self.load_data()
 
@@ -50,6 +51,9 @@ class RetrievalDataset(data.Dataset):
         if self.transforms is not None:
             item = self.transforms(image=image)
             image = item['image']
+
+        if self.text_transforms is not None:
+            title = self.text_transforms(text=title)
 
         return {
             'image': image, 
