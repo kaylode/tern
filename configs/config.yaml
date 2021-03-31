@@ -5,13 +5,13 @@ settings:
   train_imgs: images/train
   val_imgs: images/train
   test_imgs: images/test
-  train_anns: annotations/train_clean.csv
-  val_anns: annotations/train_clean.csv
+  train_anns: annotations/train_clean2.csv
+  val_anns: annotations/train_clean2.csv
 
   #################   TRAINING CONFIG   ###################
   
   model_name: 'efficient_bert'
-  image_extractor: 'efficientnet_b0' 
+  image_extractor: 'efficientnet_b4' 
   text_extractor: 'bert-base-uncased' 
 
   #pretrained_backbone: ''                  # Pretrained backbone
@@ -27,12 +27,12 @@ settings:
   # learning rate policy
   lr_policy:
     name: "adam"                         #[adam|sgd]
-    lr: 0.001                            #[adam: 1e-3 | sgd: 1e-2]
+    lr: 0.01                            #[adam: 1e-3 | sgd: 1e-2]
     momentum: 0.937
     weight_decay: 0.0005
 
   lr_scheduler:
-    name: "1cycle-yolo"                      #[plateau | cosine | 1cycle-yolo | 1cycle]
+    name: "cosine"                      #[plateau | cosine | 1cycle-yolo | 1cycle]
                                         # if need to specify more scheduler arguments, do it here
 
   # gradient accumulation
