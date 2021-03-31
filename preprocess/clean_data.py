@@ -11,6 +11,14 @@ parser.add_argument('-i', '--csv_in', type=str, help='csv in')
 parser.add_argument('-o', '--csv_out', default=None, type=str, help='csv out')    
 args = parser.parse_args()
 
+def set_target(df):
+    tmp = df.groupby('label_group').posting_id.agg('unique').to_dict()
+    df['target'] = df.label_group.map(tmp)
+    return df
+
+def remove_duplicated_phashs(df_in):
+    df_out = df_in.drop_duplicates(['image_phash','cleaned_title'], keep='last')
+    return df_out
 
 def clean(args):
     df = pd.read_csv(args.csv_in)
@@ -31,6 +39,14 @@ def clean(args):
         clean_tokens.append(txt)
 
     df['cleaned_title'] = clean_tokens
+
+    # Remove duplicates if both have same phash and title
+    before = len(df)
+    df = remove_duplicated_phashs(df)
+    print(f"Removed {len(df) - before} duplicated phashs")
+
+    # Set target group for each item
+    df = set_target(df)
 
     df.to_csv(args.csv_out, index=False)
 
