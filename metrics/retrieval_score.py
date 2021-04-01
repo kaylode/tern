@@ -58,12 +58,12 @@ def nearest_neighbor(target_labels, retrieved_labels):
 
 def first_tier(target_labels, retrieved_labels):
     n_relevant_objs = sum([1 if i in target_labels else 0 for i in retrieved_labels])
-    retrieved_1st_tier = retrieved_labels[:n_relevant_objs]
+    retrieved_1st_tier = retrieved_labels[:n_relevant_objs+1]
     return np.mean([1 if i in target_labels else 0 for i in retrieved_1st_tier])
 
 def second_tier(target_labels, retrieved_labels):
     n_relevant_objs = sum([1 if i in target_labels else 0 for i in retrieved_labels])
-    retrieved_2nd_tier = retrieved_labels[:2*n_relevant_objs]
+    retrieved_2nd_tier = retrieved_labels[:2*n_relevant_objs+1]
     return np.mean([1 if i in target_labels else 0 for i in retrieved_2nd_tier])
 
 def mean_average_precision(target_labels, retrieved_labels):
