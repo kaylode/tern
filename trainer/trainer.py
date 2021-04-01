@@ -187,8 +187,8 @@ class Trainer():
         self.logging(log_dict)
 
         # Save model gives best mf1 score
-        if metric_dict['mean-f1'] > self.best_value:
-            self.best_value = metric_dict['mean-f1']
+        if metric_dict['F1'] > self.best_value:
+            self.best_value = metric_dict['F1']
             self.checkpoint.save(self.model, save_mode = 'best', epoch = self.epoch, iters = self.iters, best_value=self.best_value)
 
         if self.visualize_when_val:
@@ -227,7 +227,8 @@ class Trainer():
             ]
       
             image_outname = os.path.join('samples', f'{self.epoch}_{self.iters}_{idx}.jpg')
-            draw_retrieval_results(queries, top_k_relevant_posts, image_outname)
+            fig = draw_retrieval_results(queries, top_k_relevant_posts, image_outname)
+            self.logger.write_image('samples', fig)
 
     def logging(self, logs):
         tags = [l for l in logs.keys()]
