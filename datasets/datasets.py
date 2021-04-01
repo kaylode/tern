@@ -45,7 +45,7 @@ class RetrievalDataset(data.Dataset):
 
             self.fns.append([image_path, title, label, post_id, target_list])
             self.labels.append(self.classes_to_idx[label])
-
+     
     def __getitem__(self, index):
         image_path, title, label, post_id, target_list = self.fns[index]
         image = cv2.imread(image_path)

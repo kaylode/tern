@@ -25,7 +25,7 @@ class Extractor(nn.Module):
         self.text_extractor = _get_bert_basemodel(bert_base_model,freeze_layers)
         self.image_extractor = _get_cnn_basemodel(cnn_base_model)
 
-        if self.freeze_cnn:
+        if freeze_cnn:
             self.image_extractor.freeze()
 
         self.embedding_imgs = nn.Sequential(
