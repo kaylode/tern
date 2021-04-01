@@ -37,7 +37,7 @@ settings:
 
   # gradient accumulation
   mixed_precision: True                # whether to use nvidia apex
-  total_accumulate_steps: 64           # step * batch_size, not use if equal 0
+  total_accumulate_steps: 0           # step * batch_size, not use if equal 0
 
   # Test time augmentation
   tta: False                             # whether to use TTA while validation
