@@ -36,6 +36,8 @@ class RetrievalDataset(data.Dataset):
         self.classes_to_idx = {k:v for v,k in enumerate(self.classes)}
         self.num_classes = len(self.classes)
 
+        self.txt_data = []
+
         for ann in annotations:
             image_name, title, label, post_id, str_targets = ann
             image_path = os.path.join(self.root, image_name)
@@ -43,9 +45,11 @@ class RetrievalDataset(data.Dataset):
             target_string = str_targets.replace(" ", ",")
             target_list = eval(target_string)
 
+            self.txt_data.append(title)
+
             self.fns.append([image_path, title, label, post_id, target_list])
             self.labels.append(self.classes_to_idx[label])
-     
+
     def __getitem__(self, index):
         image_path, title, label, post_id, target_list = self.fns[index]
         image = cv2.imread(image_path)
