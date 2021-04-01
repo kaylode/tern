@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from PIL import Image
 
 def draw_retrieval_results(queries, top_k_relevant, save_filename=None):
+    plt.close('all')
     ax = []
     post_list = queries + top_k_relevant
     fig=plt.figure(figsize=(10, 10))
