@@ -7,7 +7,7 @@ import torch
 import torch.nn as nn
 from tqdm import tqdm
 
-USE_PHASH=True
+USE_PHASH=False
 
 if USE_PHASH:
     info_df = pd.read_csv('./data/shopee-matching/annotations/train_clean2.csv')
@@ -46,17 +46,61 @@ def phash_trick(post_id, pred_post_ids=[], pred_scores=[]):
 
 def save_results(query_results):
     np.save('./results/query_results.npy', query_results, allow_pickle=True)
-    
 
-class MeanF1Score():    
+
+"""
+All retrieval metrics
+"""
+
+# Modified version of https://github.com/kaylode/3d-mesh-retrieval/blob/74e3a888da825a89e68643c1746e612626d248ef/MeshNet/utils/evaluate_distmat.py#L24
+def nearest_neighbor(target_labels, retrieved_labels):
+    return int(retrieved_labels[0] in target_labels)
+
+def first_tier(target_labels, retrieved_labels):
+    n_relevant_objs = sum([1 if i in target_labels else 0 for i in retrieved_labels])
+    retrieved_1st_tier = retrieved_labels[:n_relevant_objs]
+    return np.mean([1 if i in target_labels else 0 for i in retrieved_1st_tier])
+
+def second_tier(target_labels, retrieved_labels):
+    n_relevant_objs = sum([1 if i in target_labels else 0 for i in retrieved_labels])
+    retrieved_2nd_tier = retrieved_labels[:2*n_relevant_objs]
+    return np.mean([1 if i in target_labels else 0 for i in retrieved_2nd_tier])
+
+def mean_average_precision(target_labels, retrieved_labels):
+    score = 0.0
+    num_hits = 0.0
+
+    for i, p in enumerate(retrieved_labels):
+        if p in target_labels and p not in retrieved_labels[:i]:
+            num_hits += 1.0
+            score += num_hits / (i+1.0)
+    return score
+
+def dice_score(target_labels, retrieved_labels):
+    # F1 score: https://www.kaggle.com/cdeotte/part-2-rapids-tfidfvectorizer-cv-0-700?scriptVersionId=0
+    n = len(np.intersect1d(target_labels,retrieved_labels)) # Number of corrects
+    score = 2*n / (len(target_labels)+len(retrieved_labels))
+    return score
+
+metrics_mapping = {
+    'FT': first_tier,
+    'ST': second_tier,
+    'NN': nearest_neighbor,
+    'MAP': mean_average_precision,
+    'F1': dice_score,
+}
+
+class RetrievalScore():    
     def __init__(self, 
             queries_loader, 
             gallery_loader=None, 
+            metric_names=['FT', "ST", "MAP", "NN", "F1"],
             retrieval_pairing='txt-to-img', 
             max_distance = 1.3,
             top_k=10,
             save_results=True):
 
+        self.metric_names = metric_names
         self.queries_loader = queries_loader
         self.gallery_loader = gallery_loader if gallery_loader is not None else queries_loader
         
@@ -136,9 +180,12 @@ class MeanF1Score():
         # Compute distance matrice for queries and gallery
         print("Calculating distance matrice...")
         dist_mat = self.dist_func(self.queries_embedding, self.gallery_embedding)
-        np.savetxt("./results/dist_mat.txt",dist_mat)
+        # np.savetxt("./results/dist_mat.txt",dist_mat)
 
-        total_scores = []
+        total_scores = {
+            i: [] for i in self.metric_names
+        }
+
         for idx, row in enumerate(dist_mat):
             object_dist_score = dist_mat[idx]
 
@@ -167,25 +214,31 @@ class MeanF1Score():
                     'post_ids': pred_post_ids,
                     'scores': top_k_scores 
                 }
-
-            # F1 score: https://www.kaggle.com/cdeotte/part-2-rapids-tfidfvectorizer-cv-0-700?scriptVersionId=0
-            n = len(np.intersect1d(target_post_ids,pred_post_ids)) # Number of corrects
-            score = 2*n / (len(target_post_ids)+len(pred_post_ids))
             
-            total_scores.append(score)
+            for metric_name in self.metric_names:
+                metric_fn = metrics_mapping[metric_name]
+                score = metric_fn(target_post_ids, pred_post_ids)
+                total_scores[metric_name].append(score)
 
         # Save results for visualization later
         if self.save_results:
             print("Saving retrieval results...")
             save_results(self.post_results_dict)
 
-        return np.mean(total_scores)
+        result_dict={
+            k:np.mean(v) for k,v in total_scores.items()
+        }
+
+        return result_dict
             
     def value(self):
-        result = self.compute()
-        return {
-            'mean-f1': np.round(float(result), 3)
+        result_dict = self.compute()
+
+        result_dict = {
+            k:np.round(float(v), 5) for k,v in result_dict.items()
         }
+
+        return result_dict
 
     def __str__(self):
         return str(self.value())
