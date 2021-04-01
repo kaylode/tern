@@ -56,6 +56,7 @@ class Trainer():
                 self.epoch = epoch
                 self.training_epoch()
 
+                self.iters=0
                 if self.evaluate_per_epoch != 0:
                     if epoch % self.evaluate_per_epoch == 0 and epoch+1 >= self.evaluate_per_epoch:
                         self.evaluate_epoch()
@@ -155,7 +156,7 @@ class Trainer():
         print('=============================EVALUATION===================================')
         start_time = time.time()
         with torch.no_grad():
-            for batch in tqdm(self.valloader):
+            for batch in tqdm(self.valloader):      
                 loss, loss_dict = self.model.evaluate_step(batch)
                 
                 for (key,value) in loss_dict.items():
@@ -198,7 +199,7 @@ class Trainer():
         if not os.path.exists('./samples'):
             os.mkdir('./samples')
 
-        # Retrieval dict {post_id: [most relevant post ids]}
+        # Retrieval dict {post_id: {'post_ids': [], 'scores': []}
         retrieval_results = np.load('./results/query_results.npy', allow_pickle=True)
         
         batch = next(iter(self.valloader))
@@ -213,21 +214,20 @@ class Trainer():
             query_title = query_post.cleaned_title.values[0]
             queries = [[query_image, query_title]]
 
-            gallery_post_ids = retrieval_results.item()[post_id][:5]
-            top_k_relevant_post_scores = gallery_post_ids['scores']
-            top_k_relevant_post_indexes = gallery_post_ids['indexes']
-            top_k_relevant_posts = df[df.posting_id.isin(top_k_relevant_post_indexes)]
+            gallery_post_ids = retrieval_results.item()[post_id]
+            
+            top_k_relevant_post_scores = gallery_post_ids['scores'][:5]
+            top_k_relevant_post_ids = gallery_post_ids['post_ids'][:5]
+
+            top_k_relevant_posts = df[df.posting_id.isin(top_k_relevant_post_ids)]
             top_k_relevant_posts = [
                 (os.path.join(gallery_pool,image_name), title) for (image_name, title) in zip(
                     top_k_relevant_posts['image'], 
                     top_k_relevant_posts['cleaned_title'])
             ]
-  
+      
             image_outname = os.path.join('samples', f'{self.epoch}_{self.iters}_{idx}.jpg')
-           
             draw_retrieval_results(queries, top_k_relevant_posts, image_outname)
-
-
 
     def logging(self, logs):
         tags = [l for l in logs.keys()]
