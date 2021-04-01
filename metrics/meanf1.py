@@ -29,24 +29,40 @@ def get_retrieval_embedding(img_feat, txt_feat, embedding_type):
     else:
         return np.concatenate([img_feat, txt_feat], axis=-1)
 
-def phash_trick(post_id, pred_post_ids=[]):
+def phash_trick(post_id, pred_post_ids=[], pred_scores=[]):
     phash_id = postid_phash_mapping[post_id] # phash of current post
     post_ids_same_phash = info_df[info_df['image_phash'] == phash_id].posting_id.tolist() # all posts with same phash
-    return post_ids_same_phash #+ list(set(pred_post_ids) - set(post_ids_same_phash))
+    phash_scores = [1.0] * len(post_ids_same_phash)
+
+    new_post_ids = post_ids_same_phash
+    new_post_scores = phash_scores
+
+    for post_id, post_score in zip(pred_post_ids,pred_scores):
+        if post_id not in new_post_ids:
+            new_post_ids.append(post_id)
+            new_post_scores.append(post_score)
+
+    return new_post_ids, new_post_scores
+
+def save_results(query_results):
+    np.save('./results/query_results.npy', query_results, allow_pickle=True)
+    
 
 class MeanF1Score():    
     def __init__(self, 
             queries_loader, 
             gallery_loader=None, 
             retrieval_pairing='txt-to-img', 
-            max_distance = 0.001,
-            top_k=10):
+            max_distance = 1.3,
+            top_k=10,
+            save_results=True):
 
         self.queries_loader = queries_loader
         self.gallery_loader = gallery_loader if gallery_loader is not None else queries_loader
         
         self.top_k = top_k                  # Query top k candidates
         self.max_distance = max_distance    # Query candidates with distances lower than threshold
+        self.save_results = save_results    # Save for vizualization
 
         self.queries_embedding = [] 
         self.gallery_embedding = []
@@ -54,14 +70,25 @@ class MeanF1Score():
         self.gallery_post_ids = []
         self.targets_post_ids = []
  
-
         self.retrieval_pairing = retrieval_pairing
         self.queries_embedding_type = retrieval_pairing.split('-')[0]
         self.gallery_embedding_type = retrieval_pairing.split('-')[2]
 
         # Distance function
         self.dist_func = get_dist_func('cosine')
-    
+
+        if self.save_results:
+            self.post_results_dict = {}
+
+    def reset(self):
+        self.queries_embedding = [] 
+        self.gallery_embedding = []
+        self.queries_post_ids = []
+        self.gallery_post_ids = []
+        self.targets_post_ids = []
+        if self.save_results:
+            self.post_results_dict = {}
+
     def update(self, model):
         self.model = model
         self.model.eval()
@@ -109,7 +136,7 @@ class MeanF1Score():
         # Compute distance matrice for queries and gallery
         print("Calculating distance matrice...")
         dist_mat = self.dist_func(self.queries_embedding, self.gallery_embedding)
-        #np.savetxt("./results/dist_mat.txt",dist_mat)
+        np.savetxt("./results/dist_mat.txt",dist_mat)
 
         total_scores = []
         for idx, row in enumerate(dist_mat):
@@ -133,13 +160,24 @@ class MeanF1Score():
 
             # Add post with same phash into prediction list
             if USE_PHASH:
-                pred_post_ids = phash_trick(current_post_id, pred_post_ids)
+                pred_post_ids, top_k_scores = phash_trick(current_post_id, pred_post_ids, top_k_scores)
+
+            if self.save_results:
+                self.post_results_dict[current_post_id] = {
+                    'post_ids': pred_post_ids,
+                    'scores': top_k_scores 
+                }
 
             # F1 score: https://www.kaggle.com/cdeotte/part-2-rapids-tfidfvectorizer-cv-0-700?scriptVersionId=0
             n = len(np.intersect1d(target_post_ids,pred_post_ids)) # Number of corrects
             score = 2*n / (len(target_post_ids)+len(pred_post_ids))
             
             total_scores.append(score)
+
+        # Save results for visualization later
+        if self.save_results:
+            print("Saving retrieval results...")
+            save_results(self.post_results_dict)
 
         return np.mean(total_scores)
             
