@@ -18,7 +18,7 @@ import math
 from torch.optim.lr_scheduler import StepLR, CosineAnnealingLR, LambdaLR, ReduceLROnPlateau,OneCycleLR, CosineAnnealingWarmRestarts
 from utils.cuda import NativeScaler
 from transformers import AutoTokenizer
-from losses import NTXentLoss
+from losses import NTXentLoss, ArcMarginProduct
 from .random_seed import seed_everything
 
 
