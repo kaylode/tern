@@ -32,14 +32,14 @@ class RetrievalDataset(data.Dataset):
         # Labels of each data point, this is for BatchSampler
         self.labels = []
 
-        self.classes = sorted(self.df['label_group'].unique().tolist())
-        self.classes_to_idx = {k:v for v,k in enumerate(self.classes)}
+        self.classes = self.df['label_group'].unique().tolist()
+        self.classes_to_idx = {k:self.df[self.df['label_group'] == k].label_code.values[0] for k in self.classes}
         self.num_classes = len(self.classes)
 
         self.txt_data = []
 
         for ann in annotations:
-            image_name, title, label, post_id, str_targets = ann
+            image_name, title, label, post_id, str_targets= ann
             image_path = os.path.join(self.root, image_name)
 
             target_string = str_targets.replace(" ", ",")
@@ -51,10 +51,12 @@ class RetrievalDataset(data.Dataset):
             self.labels.append(self.classes_to_idx[label])
 
     def __getitem__(self, index):
-        image_path, title, label, post_id, target_list = self.fns[index]
+        image_path, title, label_group, post_id, target_list = self.fns[index]
         image = cv2.imread(image_path)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB).astype(np.float32)
         image /= 255.0
+
+        label = self.classes_to_idx[label_group]
 
         if self.transforms is not None:
             item = self.transforms(image=image)
@@ -67,7 +69,8 @@ class RetrievalDataset(data.Dataset):
             'image': image, 
             'post_id': post_id,
             'text': title,
-            'label':label,
+            'label': label,
+            'label_group':label_group,
             'target': target_list
         }
 
@@ -75,6 +78,7 @@ class RetrievalDataset(data.Dataset):
         imgs = torch.stack([i['image'] for i in batch])
         post_ids = [i['post_id'] for i in batch]
         txts = [i['text'] for i in batch]
+        lbl_groups = [i['label_group'] for i in batch]
         lbls = [i['label'] for i in batch]
         targets = [i['target'] for i in batch]
 
@@ -82,11 +86,12 @@ class RetrievalDataset(data.Dataset):
             txts, 
             return_tensors="pt", 
             padding=True, 
-            truncation=True)
+            truncation=False)
 
         return {
             'imgs': imgs,
             'txts': encoded_inputs,
+            'lbl_groups': lbl_groups,
             'lbls': lbls,
             'post_ids': post_ids,
             'targets': targets
