@@ -6,16 +6,16 @@ import torch
 from .base_extractor import ExtractorNetwork
 from transformers import AutoModel
 
-def _get_bert_basemodel(bert_model_name, freeze_layers=None):
-    return BertExtractor(bert_model_name, freeze_layers)
+def _get_bert_basemodel(bert_model_name, freeze_layers=None, cache_dir=None):
+    return BertExtractor(bert_model_name, freeze_layers, cache_dir=None)
 
 class BertExtractor(ExtractorNetwork):
     """Baseline model"""
 
-    def __init__(self, version='bert-base-uncased', freeze_layers=None):
+    def __init__(self, version='bert-base-uncased', freeze_layers=None, cache_dir=None):
         super().__init__()
 
-        self.extractor = AutoModel.from_pretrained(version)
+        self.extractor = AutoModel.from_pretrained(version, cache_dir=cache_dir)
         self.feature_dim = self.extractor.config.hidden_size
 
         if freeze_layers is not None:
