@@ -53,4 +53,48 @@ class Retrieval(BaseModel):
 
         return loss, loss_dict
 
-    
+class Retrieval2(BaseModel):
+    def __init__(self, model, **kwargs):
+        super(Retrieval2, self).__init__(**kwargs)
+        self.model = model
+        self.model_name = "efficientnet_b2"
+        if self.optimizer is not None:
+            self.optimizer = self.optimizer(self.parameters(), lr= self.lr)
+            self.set_optimizer_params()
+
+        if self.freeze:
+            for params in self.model.parameters():
+                params.requires_grad = False
+
+        if self.device:
+            self.model.to(self.device)
+        
+    def forward(self, x):
+        return self.model(x)
+
+    def training_step(self, batch):
+        feats = self.model(batch, self.device)
+        lbls = batch['lbls'].to(device)
+        output = self.criterion(feats, lbls)
+
+        loss_dict = {k:v.item() for k,v in output.items()}
+        loss = output['T']
+        return loss, loss_dict
+
+    def inference_step(self, batch):
+        feats = self.model(batch, self.device)
+        feats = feats.detach().cpu().numpy()
+        return feats
+
+    def evaluate_step(self, batch):
+        feats = self.model(batch, self.device)
+        lbls = batch['lbls'].to(device)
+        output = self.criterion(feats, lbls)
+
+        loss_dict = {k:v.item() for k,v in output.items()}
+        loss = output['T']
+
+        self.update_metrics(model=self)
+        #self.update_metrics(outputs = outputs, targets = targets)
+
+        return loss, loss_dict

@@ -1,2 +1,2 @@
-from .retrieval import Retrieval
-from .backbone import Extractor, get_model
+from .retrieval import *
+from .backbone import *
