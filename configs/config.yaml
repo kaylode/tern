@@ -5,14 +5,16 @@ settings:
   train_imgs: images/train
   val_imgs: images/train
   test_imgs: images/test
-  train_anns: annotations/train_clean2.csv
-  val_anns: annotations/train_clean2.csv
+  train_anns: annotations/train_clean3.csv
+  val_anns: annotations/train_clean3.csv
 
   #################   TRAINING CONFIG   ###################
   
   model_name: 'efficient_bert'
   image_extractor: 'efficientnet_b2' 
-  text_extractor: 'bert-base-uncased' 
+  text_extractor: 'indolem/indobert-base-uncased'
+  out_dim: 512
+  cache_dir: '/home/pmkhoi/source/shopee-matching/augmentations/augment_models/indobert'
 
   #pretrained_backbone: ''                  # Pretrained backbone
   
@@ -27,7 +29,7 @@ settings:
   # learning rate policy
   lr_policy:
     name: "adam"                         #[adam|sgd]
-    lr: 0.01                            #[adam: 1e-3 | sgd: 1e-2]
+    lr: 0.001                            #[adam: 1e-3 | sgd: 1e-2]
     momentum: 0.937
     weight_decay: 0.0005
 
