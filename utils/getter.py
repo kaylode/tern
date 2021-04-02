@@ -16,6 +16,7 @@ import torchvision.models as models
 from torch.optim import SGD, AdamW
 import math
 from torch.optim.lr_scheduler import StepLR, CosineAnnealingLR, LambdaLR, ReduceLROnPlateau,OneCycleLR, CosineAnnealingWarmRestarts
+from dataloaders import *
 from utils.cuda import NativeScaler
 from transformers import AutoTokenizer
 from losses import NTXentLoss, ArcMarginProduct
@@ -129,6 +130,9 @@ def get_dataset_and_dataloader(config):
         shuffle = False, 
         collate_fn=trainset.collate_fn, 
         num_workers= config.num_workers, 
+        sampler=SameGroupSampler(
+          csv_in = os.path.join('data', config.project_name, config.train_anns),
+          dataset = trainset),
         pin_memory=True)
 
     valloader = DataLoader(
@@ -137,6 +141,9 @@ def get_dataset_and_dataloader(config):
         shuffle = False,
         collate_fn=valset.collate_fn, 
         num_workers= config.num_workers, 
+        sampler=SameGroupSampler(
+          csv_in = os.path.join('data', config.project_name, config.val_anns),
+          dataset = valset),
         pin_memory=True)
 
     return  trainset, valset, trainloader, valloader

@@ -74,7 +74,7 @@ class Retrieval2(BaseModel):
 
     def training_step(self, batch):
         feats = self.model(batch, self.device)
-        lbls = batch['lbls'].to(device)
+        lbls = batch['lbls'].to(self.device)
         output = self.criterion(feats, lbls)
 
         loss_dict = {k:v.item() for k,v in output.items()}
@@ -88,7 +88,7 @@ class Retrieval2(BaseModel):
 
     def evaluate_step(self, batch):
         feats = self.model(batch, self.device)
-        lbls = batch['lbls'].to(device)
+        lbls = batch['lbls'].to(self.device)
         output = self.criterion(feats, lbls)
 
         loss_dict = {k:v.item() for k,v in output.items()}
