@@ -9,6 +9,10 @@ import torch.utils.data as data
 from tqdm import tqdm
 
 USE_PHASH=False
+USE_FAISS=True
+
+if USE_FAISS:
+    import faiss
 
 if USE_PHASH:
     info_df = pd.read_csv('./data/shopee-matching/annotations/train_clean2.csv')
@@ -59,11 +63,14 @@ def get_top_k(object_dist_score, top_k=5, max_distance=2.0):
 
     # Keep only item with near distance
     if max_distance is not None:
-        keep_indexes = top_k_scores <= self.max_distance
+        keep_indexes = top_k_scores <= max_distance
         top_k_indexes = top_k_indexes[keep_indexes]
         top_k_scores = top_k_scores[keep_indexes]
 
     return top_k_indexes, top_k_scores
+
+
+
 
 """
 All retrieval metrics
@@ -114,8 +121,8 @@ metrics_mapping = {
 
 class RetrievalScore():    
     def __init__(self, 
-            queries_set, 
-            gallery_set=None, 
+            gallery_set, 
+            queries_set=None, 
             metric_names=['FT', "ST", "MAP", "NN", "F1"],
             retrieval_pairing='txt-to-img', 
             max_distance = 1.3,
@@ -123,22 +130,23 @@ class RetrievalScore():
             save_results=True):
 
         self.metric_names = metric_names
-        self.queries_loader = data.DataLoader(
-            batch_size=64, 
-            shuffle = True, 
-            collate_fn=queries_set.collate_fn, 
-            num_workers= 2,
-            pin_memory=True
-        )
-
         self.gallery_loader = data.DataLoader(
             gallery_set,
-            batch_size=64, 
+            batch_size=256, 
             shuffle = True, 
             collate_fn=gallery_set.collate_fn, 
             num_workers= 2,
             pin_memory=True
-        ) if gallery_set is not None else None
+        )
+
+        self.queries_loader = data.DataLoader(
+            queries_set,
+            batch_size=256, 
+            shuffle = True, 
+            collate_fn=queries_set.collate_fn, 
+            num_workers= 2,
+            pin_memory=True
+        ) if queries_set is not None else None
         
         self.top_k = top_k                  # Query top k candidates
         self.max_distance = max_distance    # Query candidates with distances lower than threshold
@@ -160,6 +168,11 @@ class RetrievalScore():
         if self.save_results:
             self.post_results_dict = {}
 
+        if USE_FAISS:
+            res = faiss.StandardGpuResources()  # use a single GPU
+            self.faiss_pool = faiss.IndexFlatL2(512)
+            self.faiss_pool = faiss.index_cpu_to_gpu(res, 0, self.faiss_pool)
+
     def reset(self):
         self.queries_embedding = [] 
         self.gallery_embedding = []
@@ -177,14 +190,14 @@ class RetrievalScore():
         for idx, batch in enumerate(tqdm(self.queries_loader)):
             post_ids = batch['post_ids']
             target_ids = batch['targets']
-            img_feats, txt_feats = self.model.inference_step(batch)
+            img_feats = self.model.inference_step(batch)
 
             # Get embedding of each item in batch
             batch_size = img_feats.shape[0]
             for i in range(batch_size):
                 feat = get_retrieval_embedding(
                     img_feats[i], 
-                    txt_feats[i], 
+                    img_feats[i], 
                     embedding_type=self.queries_embedding_type)
 
                 self.queries_embedding.append(feat)
@@ -194,39 +207,34 @@ class RetrievalScore():
     def compute_gallery(self):
         for idx, batch in enumerate(tqdm(self.gallery_loader)):
             post_ids = batch['post_ids']
-            img_feats, txt_feats = self.model.inference_step(batch)
+            img_feats = self.model.inference_step(batch)
 
             # Get embedding of each item in batch
             batch_size = img_feats.shape[0]
             for i in range(batch_size):
                 feat = get_retrieval_embedding(
                     img_feats[i], 
-                    txt_feats[i], 
+                    img_feats[i], 
                     embedding_type=self.gallery_embedding_type)
 
                 self.gallery_embedding.append(feat)
                 self.gallery_post_ids.append(post_ids[i])
+        self.gallery_embedding = np.array(self.gallery_embedding)
         self.gallery_post_ids = np.array(self.gallery_post_ids)
 
-    def compute(self):
-        print("Extracting features...")
-        with torch.no_grad():
-            self.compute_queries()
-            if self.gallery_loader is not None:
-                self.compute_gallery()
-            else:
-                self.gallery_embedding = self.queries_embedding.copy()
-                self.gallery_post_ids = np.array(self.queries_post_ids)
-
-        # Compute distance matrice for queries and gallery
-        print("Calculating distance matrice...")
-        dist_mat = self.dist_func(self.queries_embedding, self.gallery_embedding)
-        # np.savetxt("./results/dist_mat.txt",dist_mat)
-
+    def compute_default(self):
+        """
+        Compute score for each metric and return 
+        """
         total_scores = {
             i: [] for i in self.metric_names
         }
 
+        # Compute distance matrice for queries and gallery
+        print("Calculating distance matrice...")
+        dist_mat = self.dist_func(self.queries_embedding, self.gallery_embedding)
+
+        # np.savetxt("./results/dist_mat.txt",dist_mat)
         for idx, row in enumerate(dist_mat):
             object_dist_score = dist_mat[idx]
             top_k_indexes, top_k_scores = get_top_k(
@@ -256,11 +264,78 @@ class RetrievalScore():
                 score = metric_fn(target_post_ids, pred_post_ids)
                 total_scores[metric_name].append(score)
 
+        return total_scores
+
+
+    def compute_faiss(self):
+        """
+        Compute score for each metric and return using faiss
+        """
+        total_scores = {
+            i: [] for i in self.metric_names
+        }
+
+        # if not isinstance(self.gallery_embedding, np.array):
+        #     self.gallery_embedding = np.array(self.gallery_embedding)
+
+        # if not isinstance(self.queries_embedding, np.array):
+        #     self.queries_embedding = np.array(self.queries_embedding)
+
+
+        np.save('./results/queries_embedding.npy', self.queries_embedding, allow_pickle=True)
+        np.save('./results/gallery_embedding.npy', self.gallery_embedding, allow_pickle=True)
+
+        self.faiss_pool.add(self.gallery_embedding)
+        top_k_scores_all, top_k_indexes_all = self.faiss_pool.search(self.queries_embedding, k=self.top_k)
+        
+        # np.savetxt("./results/dist_mat.txt",dist_mat)
+        for idx, (top_k_scores, top_k_indexes) in enumerate(zip(top_k_scores_all, top_k_indexes_all)):
+          
+            current_post_id = self.queries_post_ids[idx]
+            target_post_ids = self.targets_post_ids[idx]
+
+            pred_post_ids = self.gallery_post_ids[top_k_indexes]
+            pred_post_ids = pred_post_ids.tolist()
+
+            # Add post with same phash into prediction list
+            if USE_PHASH:
+                pred_post_ids, top_k_scores = phash_trick(current_post_id, pred_post_ids, top_k_scores)
+
+            if self.save_results:
+                self.post_results_dict[current_post_id] = {
+                    'post_ids': pred_post_ids,
+                    'scores': top_k_scores 
+                }
+            
+            for metric_name in self.metric_names:
+                metric_fn = metrics_mapping[metric_name]
+                score = metric_fn(target_post_ids, pred_post_ids)
+                total_scores[metric_name].append(score)
+
+        return total_scores
+
+    def compute(self):
+        print("Extracting features...")
+        with torch.no_grad():
+            self.compute_gallery()
+            if self.queries_loader is not None:
+                self.compute_queries()
+            else:
+                self.queries_embedding = self.gallery_embedding.copy()
+                self.queries_post_ids = np.array(self.gallery_post_ids)
+
+        
+
+        if USE_FAISS:
+            total_scores = self.compute_faiss()
+        else:
+            total_scores = self.compute_default()
+
         # Save results for visualization later
         if self.save_results:
             print("Saving retrieval results...")
             save_results(self.post_results_dict)
-
+          
         result_dict={
             k:np.mean(v) for k,v in total_scores.items()
         }

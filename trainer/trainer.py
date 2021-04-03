@@ -55,8 +55,6 @@ class Trainer():
             try:
                 self.epoch = epoch
                 self.training_epoch()
-
-                self.iters=0
                 if self.evaluate_per_epoch != 0:
                     if epoch % self.evaluate_per_epoch == 0 and epoch+1 >= self.evaluate_per_epoch:
                         self.evaluate_epoch()

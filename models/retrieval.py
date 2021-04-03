@@ -84,7 +84,7 @@ class Retrieval2(BaseModel):
     def inference_step(self, batch):
         feats = self.model(batch, self.device)
         feats = feats.detach().cpu().numpy()
-        return feats
+        return feats, feats.copy() # For evaluation metric requires 2 features 
 
     def evaluate_step(self, batch):
         feats = self.model(batch, self.device)
