@@ -9,10 +9,11 @@ import torch.utils.data as data
 from tqdm import tqdm
 
 USE_PHASH=False
-USE_FAISS=True
-
-if USE_FAISS:
+try:
     import faiss
+    USE_FAISS=True
+except ImportError as e:
+    USE_FAISS=False
 
 if USE_PHASH:
     info_df = pd.read_csv('./data/shopee-matching/annotations/train_clean2.csv')
@@ -121,8 +122,8 @@ metrics_mapping = {
 
 class RetrievalScore():    
     def __init__(self, 
-            gallery_set, 
-            queries_set=None, 
+            queries_set, 
+            gallery_set=None, 
             metric_names=['FT', "ST", "MAP", "NN", "F1"],
             retrieval_pairing='txt-to-img', 
             max_distance = 1.3,
@@ -130,15 +131,6 @@ class RetrievalScore():
             save_results=True):
 
         self.metric_names = metric_names
-        self.gallery_loader = data.DataLoader(
-            gallery_set,
-            batch_size=256, 
-            shuffle = True, 
-            collate_fn=gallery_set.collate_fn, 
-            num_workers= 2,
-            pin_memory=True
-        )
-
         self.queries_loader = data.DataLoader(
             queries_set,
             batch_size=256, 
@@ -146,7 +138,16 @@ class RetrievalScore():
             collate_fn=queries_set.collate_fn, 
             num_workers= 2,
             pin_memory=True
-        ) if queries_set is not None else None
+        )
+
+        self.gallery_loader = data.DataLoader(
+            gallery_set,
+            batch_size=256, 
+            shuffle = True, 
+            collate_fn=gallery_set.collate_fn, 
+            num_workers= 2,
+            pin_memory=True
+        ) if gallery_set is not None else None
         
         self.top_k = top_k                  # Query top k candidates
         self.max_distance = max_distance    # Query candidates with distances lower than threshold
@@ -190,31 +191,34 @@ class RetrievalScore():
         for idx, batch in enumerate(tqdm(self.queries_loader)):
             post_ids = batch['post_ids']
             target_ids = batch['targets']
-            img_feats = self.model.inference_step(batch)
+            img_feats, txt_feats = self.model.inference_step(batch)
 
             # Get embedding of each item in batch
             batch_size = img_feats.shape[0]
             for i in range(batch_size):
                 feat = get_retrieval_embedding(
                     img_feats[i], 
-                    img_feats[i], 
+                    txt_feats[i], 
                     embedding_type=self.queries_embedding_type)
 
                 self.queries_embedding.append(feat)
                 self.queries_post_ids.append(post_ids[i])
                 self.targets_post_ids.append(target_ids[i])
+        self.queries_embedding = np.array(self.queries_embedding)
+        self.targets_post_ids = np.array(self.targets_post_ids)
+        self.queries_post_ids = np.array(self.queries_post_ids)
 
     def compute_gallery(self):
         for idx, batch in enumerate(tqdm(self.gallery_loader)):
             post_ids = batch['post_ids']
-            img_feats = self.model.inference_step(batch)
+            img_feats, txt_feats = self.model.inference_step(batch)
 
             # Get embedding of each item in batch
             batch_size = img_feats.shape[0]
             for i in range(batch_size):
                 feat = get_retrieval_embedding(
                     img_feats[i], 
-                    img_feats[i], 
+                    txt_feats[i], 
                     embedding_type=self.gallery_embedding_type)
 
                 self.gallery_embedding.append(feat)
@@ -275,13 +279,6 @@ class RetrievalScore():
             i: [] for i in self.metric_names
         }
 
-        # if not isinstance(self.gallery_embedding, np.array):
-        #     self.gallery_embedding = np.array(self.gallery_embedding)
-
-        # if not isinstance(self.queries_embedding, np.array):
-        #     self.queries_embedding = np.array(self.queries_embedding)
-
-
         np.save('./results/queries_embedding.npy', self.queries_embedding, allow_pickle=True)
         np.save('./results/gallery_embedding.npy', self.gallery_embedding, allow_pickle=True)
 
@@ -317,15 +314,13 @@ class RetrievalScore():
     def compute(self):
         print("Extracting features...")
         with torch.no_grad():
-            self.compute_gallery()
-            if self.queries_loader is not None:
-                self.compute_queries()
+            self.compute_queries()
+            if self.gallery_loader is not None:
+                self.compute_gallery()
             else:
-                self.queries_embedding = self.gallery_embedding.copy()
-                self.queries_post_ids = np.array(self.gallery_post_ids)
-
-        
-
+                self.gallery_embedding = self.queries_embedding.copy()
+                self.gallery_post_ids = self.queries_post_ids.copy()
+                
         if USE_FAISS:
             total_scores = self.compute_faiss()
         else:
