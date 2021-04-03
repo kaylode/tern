@@ -14,11 +14,11 @@ def train(args, config):
 
     trainset, valset, trainloader, valloader = get_dataset_and_dataloader(config)
 
-    metric = MeanF1Score(valloader, valloader, top_k=5)    
-    
+    metric = RetrievalScore(valset, top_k=5, retrieval_pairing='img-to-img')    
+
     net = get_model(args, config)
 
-    model = Retrieval(
+    model = Retrieval2(
             model = net, 
             device = device)
 
@@ -26,15 +26,17 @@ def train(args, config):
         load_checkpoint(model, args.weight)
         
     metric.update(model)
-    metric.value()
+    result_dict = metric.value()
+    print(result_dict)
     
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('Training EfficientDet')
     parser.add_argument('--max_images' , type=int, help='max number of images', default=10000)
     parser.add_argument('--weight' , type=str, default=None, help='project file that contains parameters')
+    parser.add_argument('--freeze_cnn', action='store_true', help='whether to freeze the backbone')
     args = parser.parse_args()
-    config = Config(os.path.join('configs','config.yaml'))
+    config = Config(os.path.join('configs','config2.yaml'))
 
     train(args, config)
     
