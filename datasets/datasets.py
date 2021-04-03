@@ -57,6 +57,7 @@ class RetrievalDataset(data.Dataset):
         image /= 255.0
 
         label = self.classes_to_idx[label_group]
+        label = torch.tensor(label).type(torch.LongTensor)
 
         if self.transforms is not None:
             item = self.transforms(image=image)
@@ -79,7 +80,7 @@ class RetrievalDataset(data.Dataset):
         post_ids = [i['post_id'] for i in batch]
         txts = [i['text'] for i in batch]
         lbl_groups = [i['label_group'] for i in batch]
-        lbls = [i['label'] for i in batch]
+        lbls = torch.stack([i['label'] for i in batch], dim=0)
         targets = [i['target'] for i in batch]
 
         encoded_inputs = self.tokenizer(
