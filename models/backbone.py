@@ -57,11 +57,13 @@ class Extractor(nn.Module):
     def image_encoder(self, img):
         x = self.image_extractor(img)
         x = self.embedding_imgs(x)
+        x = F.normalize(x)
         return x
 
     def text_encoder(self, encoded_inputs):
         x = self.text_extractor(encoded_inputs)
         x = self.embedding_text(x)
+        x = F.normalize(x)
         return x
 
     def forward(self, batch, device):
@@ -93,6 +95,7 @@ class ImageExtractor(nn.Module):
     def image_encoder(self, img):
         x = self.image_extractor(img)
         x = self.embedding_imgs(x)
+        x = F.normalize(x)
         return x
 
     def forward(self, batch, device):
@@ -116,6 +119,7 @@ class TextExtractor(nn.Module):
     def text_encoder(self, encoded_inputs):
         x = self.text_extractor(encoded_inputs)
         x = self.embedding_text(x)
+        x = F.normalize(x)
         return x
 
     def forward(self, batch, device):

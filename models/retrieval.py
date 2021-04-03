@@ -88,6 +88,7 @@ class Retrieval2(BaseModel):
 
     def evaluate_step(self, batch):
         feats = self.model(batch, self.device)
+        
         lbls = batch['lbls'].to(self.device)
         output = self.criterion(feats, lbls)
 
