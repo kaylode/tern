@@ -53,7 +53,7 @@ class ArcMarginProduct(nn.Module):
         output = (one_hot * phi) + ((1.0 - one_hot) * cosine)  # you can use torch.where if your torch.__version__ is 0.4
         output *= self.s
         # print(output)
-        loss = self.loss_fn(output)
+        loss = self.loss_fn(output, label)
         return {
             'T': loss
         }
