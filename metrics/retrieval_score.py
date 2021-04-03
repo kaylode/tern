@@ -183,6 +183,9 @@ class RetrievalScore():
         if self.save_results:
             self.post_results_dict = {}
 
+        if USE_FAISS:
+            self.faiss_pool.reset()
+
     def update(self, model):
         self.model = model
         self.model.eval()
