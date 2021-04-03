@@ -207,7 +207,7 @@ class Trainer():
 
         query_pool = os.path.join('data', self.cfg.project_name, self.cfg.val_imgs)
         gallery_pool = os.path.join('data', self.cfg.project_name, self.cfg.train_imgs)
-        df = pd.read_csv('./data/shopee-matching/annotations/train_clean.csv')
+        df = pd.read_csv('./data/shopee-matching/annotations/train_clean3.csv')
         for idx, post_id in enumerate(post_ids):
             query_post = df[df.posting_id == post_id]
             query_image = os.path.join(query_pool, query_post.image.values[0])
