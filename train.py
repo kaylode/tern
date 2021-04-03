@@ -23,7 +23,7 @@ def train(args, config):
         args.log_path = os.path.join(args.log_path, config.project_name)
 
     metric = [
-        RetrievalScore(valloader, trainloader, top_k=5)    
+        RetrievalScore(valset, top_k=5)    
     ]
 
     optimizer, optimizer_params = get_lr_policy(config.lr_policy)
