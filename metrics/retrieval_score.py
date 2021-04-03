@@ -279,13 +279,9 @@ class RetrievalScore():
             i: [] for i in self.metric_names
         }
 
-        np.save('./results/queries_embedding.npy', self.queries_embedding, allow_pickle=True)
-        np.save('./results/gallery_embedding.npy', self.gallery_embedding, allow_pickle=True)
-
         self.faiss_pool.add(self.gallery_embedding)
         top_k_scores_all, top_k_indexes_all = self.faiss_pool.search(self.queries_embedding, k=self.top_k)
         
-        # np.savetxt("./results/dist_mat.txt",dist_mat)
         for idx, (top_k_scores, top_k_indexes) in enumerate(zip(top_k_scores_all, top_k_indexes_all)):
           
             current_post_id = self.queries_post_ids[idx]
