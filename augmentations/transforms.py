@@ -42,8 +42,8 @@ def get_resize_augmentation(image_size, keep_ratio=False, box_transforms = False
 def get_augmentation(config, _type='train'):
     train_transforms = A.Compose([
         A.Resize(
-            height = 256,
-            width = 256),
+            height = 320,
+            width = 320),
         
         A.OneOf([
             A.MotionBlur(p=.2),

@@ -19,12 +19,12 @@ settings:
 
   #pretrained_backbone: ''                  # Pretrained backbone
   
-  gpu_devices: '0,1'                     # supports multi-gpus
+  gpu_devices: '0'                     # supports multi-gpus
   num_epochs: 100
-  batch_size: 256
-  num_workers: 4
+  batch_size: 64
+  num_workers: 2
   
-  image_size: [224,224]               # should be square to prevent bugs [512, 640, 768, 896, 1024, 1280, 1280, 1536, 1536]
+  image_size: [300,300]               # should be square to prevent bugs [512, 640, 768, 896, 1024, 1280, 1280, 1536, 1536]
   keep_ratio: False                     # whether to use resize padding
 
   # learning rate policy
