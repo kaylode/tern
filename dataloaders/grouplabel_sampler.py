@@ -7,9 +7,10 @@ Sample two items with same label group
 """
 
 class SameGroupSampler(Sampler):
-    def __init__(self, df ,ds):
-        super().__init__(ds)
+    def __init__(self, csv_in ,dataset):
+        super().__init__(dataset)
         
+        df = pd.read_csv(csv_in)
         # Create a dictionary of posting_id -> index in dataset
         self.index_to_position = dict(zip(df.posting_id, range(len(df))))
         
@@ -26,10 +27,11 @@ class SameGroupSampler(Sampler):
             
             # Check if contains only one group label
             if len(label_group_sample) < 2:
-                continue
+                sample1 = label_group_sample[0]
+                yield self.index_to_position[sample1]
+            else:
+                # Sample two posting_id's
+                sample1, sample2 = np.random.choice(label_group_sample, 2, replace=False)
 
-            # Sample two posting_id's
-            sample1, sample2 = np.random.choice(label_group_sample, 2, replace=False)
-            
-            yield self.index_to_position[sample1]
-            yield self.index_to_position[sample2]            
+                yield self.index_to_position[sample1]
+                yield self.index_to_position[sample2]            
