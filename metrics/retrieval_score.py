@@ -5,6 +5,7 @@ import numpy as np
 from sklearn.metrics.pairwise import euclidean_distances, cosine_distances
 import torch
 import torch.nn as nn
+import torch.utils.data as data
 from tqdm import tqdm
 
 USE_PHASH=False
@@ -47,9 +48,30 @@ def phash_trick(post_id, pred_post_ids=[], pred_scores=[]):
 def save_results(query_results):
     np.save('./results/query_results.npy', query_results, allow_pickle=True)
 
+def get_top_k(object_dist_score, top_k=5, max_distance=2.0):
+    """
+    Input: Array of distance of each item in the gallery to the query
+    Return: top k objects's indexes and scores
+    """
+    # Sort item by distance and get top-k
+    top_k_indexes = object_dist_score.argsort()[:top_k]
+    top_k_scores = object_dist_score[top_k_indexes]
+
+    # Keep only item with near distance
+    if max_distance is not None:
+        keep_indexes = top_k_scores <= self.max_distance
+        top_k_indexes = top_k_indexes[keep_indexes]
+        top_k_scores = top_k_scores[keep_indexes]
+
+    return top_k_indexes, top_k_scores
 
 """
 All retrieval metrics
+- Mean average precision
+- First tier
+- Second tier
+- Dice score
+- Nearest neighbor
 """
 
 # Modified version of https://github.com/kaylode/3d-mesh-retrieval/blob/74e3a888da825a89e68643c1746e612626d248ef/MeshNet/utils/evaluate_distmat.py#L24
@@ -92,8 +114,8 @@ metrics_mapping = {
 
 class RetrievalScore():    
     def __init__(self, 
-            queries_loader, 
-            gallery_loader=None, 
+            queries_set, 
+            gallery_set=None, 
             metric_names=['FT', "ST", "MAP", "NN", "F1"],
             retrieval_pairing='txt-to-img', 
             max_distance = 1.3,
@@ -101,8 +123,22 @@ class RetrievalScore():
             save_results=True):
 
         self.metric_names = metric_names
-        self.queries_loader = queries_loader
-        self.gallery_loader = gallery_loader if gallery_loader is not None else queries_loader
+        self.queries_loader = data.DataLoader(
+            batch_size=64, 
+            shuffle = True, 
+            collate_fn=queries_set.collate_fn, 
+            num_workers= 2,
+            pin_memory=True
+        )
+
+        self.gallery_loader = data.DataLoader(
+            gallery_set,
+            batch_size=64, 
+            shuffle = True, 
+            collate_fn=gallery_set.collate_fn, 
+            num_workers= 2,
+            pin_memory=True
+        ) if gallery_set is not None else None
         
         self.top_k = top_k                  # Query top k candidates
         self.max_distance = max_distance    # Query candidates with distances lower than threshold
@@ -174,8 +210,13 @@ class RetrievalScore():
 
     def compute(self):
         print("Extracting features...")
-        self.compute_queries()
-        self.compute_gallery()
+        with torch.no_grad():
+            self.compute_queries()
+            if self.gallery_loader is not None:
+                self.compute_gallery()
+            else:
+                self.gallery_embedding = self.queries_embedding.copy()
+                self.gallery_post_ids = np.array(self.queries_post_ids)
 
         # Compute distance matrice for queries and gallery
         print("Calculating distance matrice...")
@@ -188,16 +229,11 @@ class RetrievalScore():
 
         for idx, row in enumerate(dist_mat):
             object_dist_score = dist_mat[idx]
-
-            # Sort item by distance and get top-k
-            top_k_indexes = object_dist_score.argsort()[:self.top_k]
-            top_k_scores = object_dist_score[top_k_indexes]
-
-            # Keep only item with near distance
-            if self.max_distance is not None:
-                keep_indexes = top_k_scores <= self.max_distance
-                top_k_indexes = top_k_indexes[keep_indexes]
-                top_k_scores = top_k_scores[keep_indexes]
+            top_k_indexes, top_k_scores = get_top_k(
+                object_dist_score,
+                top_k=self.top_k,
+                max_distance=self.max_distance
+            )
 
             current_post_id = self.queries_post_ids[idx]
             target_post_ids = self.targets_post_ids[idx]
