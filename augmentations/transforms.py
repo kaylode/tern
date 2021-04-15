@@ -45,12 +45,12 @@ def get_augmentation(config, _type='train'):
             height = 320,
             width = 320),
         
-        A.OneOf([
-            A.MotionBlur(p=.2),
-            A.GaussianBlur(),
-            A.MedianBlur(blur_limit=3, p=0.3),
-            A.Blur(blur_limit=3, p=0.1),
-        ], p=0.3),
+        # A.OneOf([
+        #     A.MotionBlur(p=.2),
+        #     A.GaussianBlur(),
+        #     A.MedianBlur(blur_limit=3, p=0.3),
+        #     A.Blur(blur_limit=3, p=0.1),
+        # ], p=0.3),
         A.ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.2, rotate_limit=20, p=0.3),
         A.OneOf([
             A.IAASharpen(p=0.5), 
@@ -78,7 +78,7 @@ def get_augmentation(config, _type='train'):
             A.RandomRotate90(p=0.3),
         ], p =0.6),
         A.RandomCrop(width=config.image_size[0], height=config.image_size[1]),
-        A.Cutout(num_holes=8, max_h_size=64, max_w_size=64, fill_value=0, p=0.5),
+        A.Cutout(num_holes=8, max_h_size=32, max_w_size=32, fill_value=0, p=0.5),
         A.Normalize(mean=MEAN, std=STD, max_pixel_value=1.0, p=1.0),
         ToTensorV2(p=1.0)])
 
