@@ -130,9 +130,9 @@ def get_dataset_and_dataloader(config):
         shuffle = False, 
         collate_fn=trainset.collate_fn, 
         num_workers= config.num_workers, 
-        # sampler=SameGroupSampler(
-        #   csv_in = os.path.join('data', config.project_name, config.train_anns),
-        #   dataset = trainset),
+        sampler=SameGroupSampler(
+          csv_in = os.path.join('data', config.project_name, config.train_anns),
+          dataset = trainset),
         pin_memory=True)
 
     valloader = DataLoader(
