@@ -52,7 +52,18 @@ def get_augmentation(config, _type='train'):
             A.Blur(blur_limit=3, p=0.1),
         ], p=0.3),
         A.ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.2, rotate_limit=20, p=0.3),
-        # A.CLAHE(clip_limit=2.0, tile_grid_size=(8,8), p=0.5),
+        A.OneOf([
+            A.IAASharpen(p=0.5), 
+            A.Compose([
+                A.FromFloat(dtype='uint8', p=1),
+                A.OneOf([
+                    A.CLAHE(clip_limit=2.0, tile_grid_size=(8,8), p=0.5),
+                    A.JpegCompression(p=0.3),
+                ], p=0.7),
+                A.ToFloat(p=1),
+            ])           
+        ], p=0.8),
+        
         A.OneOf([
             A.HueSaturationValue(hue_shift_limit=0.2, sat_shift_limit= 0.2, 
                                  val_shift_limit=0.2, p=0.9),
@@ -61,12 +72,14 @@ def get_augmentation(config, _type='train'):
                                        p=0.3),            
         ], p=0.5),
 
-        A.HorizontalFlip(p=0.3),
-        A.VerticalFlip(p=0.3),
-        A.RandomRotate90(p=0.3),
+        A.OneOf([
+            A.HorizontalFlip(p=0.3),
+            A.VerticalFlip(p=0.3),
+            A.RandomRotate90(p=0.3),
+        ], p =0.6),
         A.RandomCrop(width=config.image_size[0], height=config.image_size[1]),
         A.Cutout(num_holes=8, max_h_size=64, max_w_size=64, fill_value=0, p=0.5),
-        A.Normalize(mean=MEAN, std=STD, max_pixel_value=255.0, p=1.0),
+        A.Normalize(mean=MEAN, std=STD, max_pixel_value=1.0, p=1.0),
         ToTensorV2(p=1.0)])
 
 
@@ -74,7 +87,7 @@ def get_augmentation(config, _type='train'):
         A.Resize(
             height = config.image_size[1],
             width = config.image_size[0]),
-        A.Normalize(mean=MEAN, std=STD, max_pixel_value=255.0, p=1.0),
+        A.Normalize(mean=MEAN, std=STD, max_pixel_value=1.0, p=1.0),
         ToTensorV2(p=1.0)])
     
 
