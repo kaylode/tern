@@ -2,9 +2,6 @@ import numpy as np
 from torch.utils.data.sampler import BatchSampler
 from torch.utils.data import DataLoader
 
-from utils import getter
-
-
 class BalancedBatchSampler(BatchSampler):
     """
     BatchSampler - from a MNIST-like dataset, samples n_classes and within these classes samples n_samples.

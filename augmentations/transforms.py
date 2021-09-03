@@ -2,7 +2,8 @@ import cv2
 import numpy as np
 import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
-
+from .custom import CustomCutout
+from configs import Config
 
 MEAN = [0.485, 0.456, 0.406]
 STD = [0.229, 0.224, 0.225]
@@ -28,10 +29,20 @@ class Denormalize(object):
         return img_show
 
 def get_resize_augmentation(image_size, keep_ratio=False, box_transforms = False):
+    """
+    Resize an image, support multi-scaling
+    :param image_size: shape of image to resize
+    :param keep_ratio: whether to keep image ratio
+    :param box_transforms: whether to augment boxes
+    :return: albumentation Compose
+    """
 
     if not keep_ratio:
         return  A.Compose([
-            ]) 
+            A.Resize(
+                height = image_size[1],
+                width = image_size[0]
+            )]) 
     else:
         return A.Compose([
             A.LongestMaxSize(max_size=max(image_size)), 
@@ -39,56 +50,53 @@ def get_resize_augmentation(image_size, keep_ratio=False, box_transforms = False
             ])
         
 
-def get_augmentation(config, _type='train'):
-    train_transforms = A.Compose([
-        A.Resize(
-            height = 320,
-            width = 320),
-        
-        # A.OneOf([
-        #     A.MotionBlur(p=.2),
-        #     A.GaussianBlur(),
-        #     A.MedianBlur(blur_limit=3, p=0.3),
-        #     A.Blur(blur_limit=3, p=0.1),
-        # ], p=0.3),
-        A.ShiftScaleRotate(shift_limit=0.0625, scale_limit=0.2, rotate_limit=20, p=0.3),
+def get_augmentation(_type='train'):
+
+    config = Config('./augmentations/augments.yaml')
+    flip_config = config.flip
+    ssr_config = flip_config['shift_scale_crop']
+    color_config = config.color
+    quality_config = config.quality
+
+    transforms_list = [
+
+        A.HorizontalFlip(p=flip_config['hflip']),
+    
+        A.RandomBrightnessContrast(
+            brightness_limit=color_config['brightness'], 
+            contrast_limit=color_config['contrast'], 
+            p=0.5),
+
         A.OneOf([
-            A.IAASharpen(p=0.5), 
+            A.IAASharpen(p=quality_config['sharpen']), 
             A.Compose([
                 A.FromFloat(dtype='uint8', p=1),
-                A.OneOf([
-                    A.CLAHE(clip_limit=2.0, tile_grid_size=(8,8), p=0.5),
-                    A.JpegCompression(p=0.3),
-                ], p=0.7),
+                A.CLAHE(clip_limit=2.0, tile_grid_size=(8,8), p=quality_config['clahe']),
                 A.ToFloat(p=1),
             ])           
-        ], p=0.8),
+        ], p=quality_config['prob']),
         
-        A.OneOf([
-            A.HueSaturationValue(hue_shift_limit=0.2, sat_shift_limit= 0.2, 
-                                 val_shift_limit=0.2, p=0.9),
-            A.RandomBrightnessContrast(brightness_limit=0.1, 
-                                       contrast_limit=0.1, 
-                                       p=0.3),            
-        ], p=0.5),
-
-        A.OneOf([
-            A.HorizontalFlip(p=0.3),
-            A.VerticalFlip(p=0.3),
-            A.RandomRotate90(p=0.3),
-        ], p =0.6),
-        A.RandomCrop(width=config.image_size[0], height=config.image_size[1]),
-        A.Cutout(num_holes=8, max_h_size=32, max_w_size=32, fill_value=0, p=0.5),
+        # A.RandomSizedCrop(min_max_height=(800, 800), height=1024, width=1024, p=0.5),
+        A.ShiftScaleRotate(
+            shift_limit=ssr_config['shift_limit'], 
+            scale_limit=ssr_config['scale_limit'], 
+            rotate_limit=ssr_config['rotate_limit'], 
+            border_mode=cv2.BORDER_CONSTANT,
+            value=0,
+            p=ssr_config['prob']),
+    ]
+        
+    transforms_list += [
         A.Normalize(mean=MEAN, std=STD, max_pixel_value=1.0, p=1.0),
-        ToTensorV2(p=1.0)])
+        ToTensorV2(p=1.0)
+    ]
 
+    train_transforms = A.Compose(transforms_list)
 
     val_transforms = A.Compose([
-        A.Resize(
-            height = config.image_size[1],
-            width = config.image_size[0]),
         A.Normalize(mean=MEAN, std=STD, max_pixel_value=1.0, p=1.0),
-        ToTensorV2(p=1.0)])
+        ToTensorV2(p=1.0)
+    ])
     
 
     return train_transforms if _type == 'train' else val_transforms

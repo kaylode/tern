@@ -1,0 +1,20 @@
+settings:
+
+  flip:
+    prob:             0.8
+    hflip:            0.5
+    shift_scale_crop:
+      prob:           0.3
+      shift_limit:    0.1
+      scale_limit:    0.1
+      rotate_limit:   10
+
+  quality:
+    prob:             0.8
+    sharpen:          0.5
+    clahe:            0.5
+
+  color:
+    prob:             0.5
+    brightness:       0.3
+    contrast:         0.3
