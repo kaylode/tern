@@ -1,131 +1,244 @@
-import torch
-import torch.utils.data as data
 import os
+import pickle
+from utils.preprocess import *
 import matplotlib.pyplot as plt
-import numpy as np
-import random
-import string
-import csv
-from tqdm import tqdm
-from utils.preprocess import TextTokenizer
-from collections import defaultdict
-import sys
-sys.path.append("..")
+from pycocotools.coco import COCO
 
-class CustomVocabulary(data.Dataset):
+class Vocabulary(object):
+    """
+    Build custom vocabulary from scratch
+    """
     def __init__(self,
-                tokenizer = None,
-                min_freqs = None,
-                max_size = None,
-                init_token = "<sos>",
-                eos_token = "<eos>",
-                pad_token = "<pad>",
-                unk_token = "<unk>"):
+        max_size=None,
+        min_freq=None,
+        start_word="<bos>",
+        end_word="<eos>",
+        unk_word="<unk>",
+        pad_word="<pad>"):
         
-        self.init_token = init_token
-        self.eos_token = eos_token
-        self.pad_token = pad_token
-        self.unk_token = unk_token
-
-        if tokenizer is None:
-            self.tokenizer = TextTokenizer()
-        else:
-            self.tokenizer = tokenizer
-        
+        self.min_freq = min_freq
         self.max_size = max_size
-        self.min_freqs = min_freqs
+        self.start_word = start_word
+        self.end_word = end_word
+        self.unk_word = unk_word
+        self.pad_word = pad_word
+        self._init_vocab()
+
+    def special_tokens_map_extended(self):
+        """
+        Return special map tokens
+        """
+        return self._special_tokens
+
+    def _init_vocab(self):
+        """
+        Initialize the dictionaries for converting tokens to integers (and vice-versa).
+        """
+        self._word2idx = {}
+        self._idx2word = {}
         self.freqs = {}
-    
-        self.vocab_size = 4
-        self.special_tokens = {
-            "init_token": init_token,
-            "eos_token" : eos_token,
-            "pad_token" : pad_token,
-            "unk_token" : unk_token
+        self.vocab_size = 0
+
+        self._add_word(self.pad_word)
+        self._add_word(self.start_word)
+        self._add_word(self.end_word)
+        self._add_word(self.unk_word)
+
+        self.start_word_idx = self.stoi(self.start_word)
+        self.end_word_idx = self.stoi(self.end_word)
+        self.unk_word_idx = self.stoi(self.unk_word)
+        self.pad_word_idx = self.stoi(self.pad_word)
+
+        self._special_tokens = {
+            'bos_token': self.start_word,
+            'cls_token': self.start_word,
+            'eos_token': self.end_word,
+            'sep_token': self.end_word,
+            'pad_token': self.pad_word,
+            'unk_token': self.unk_word,
         }
 
-        self.stoi = defaultdict(lambda : 3)
-        self.stoi[pad_token] = 0
-        self.stoi[init_token] = 1
-        self.stoi[eos_token] = 2
-        self.stoi[unk_token] = 3
-        
-        self.itos = {
-            0: pad_token,
-            1: init_token,
-            2: eos_token,
-            3: unk_token
-        }    
-    
-    def reset(self):
-        self.vocab_size =  4
-        
-        self.stoi = defaultdict(lambda : 3)
-        self.stoi[self.pad_token] = 0
-        self.stoi[self.init_token] = 1
-        self.stoi[self.eos_token] = 2
-        self.stoi[self.unk_token] = 3
-        
-        self.itos = {
-            0: self.pad_token,
-            1: self.init_token,
-            2: self.eos_token,
-            3: self.unk_token
-        } 
+        self._special_ids = {
+            'bos_token_id': self.start_word_idx,
+            'cls_token_id': self.start_word_idx,
+            'eos_token_id': self.end_word_idx,
+            'sep_token_id': self.end_word_idx,
+            'pad_token_id': self.pad_word_idx,
+            'unk_token_id': self.unk_word_idx,
+        }
 
-    def build_vocab(self, datasets):
+        self.cls_token_id = self.bos_token_id = self.start_word_idx
+        self.eos_token_id = self.sep_token_id = self.end_word_idx
+        self.pad_token_id = self.pad_word_idx
+        self.unk_token_id = self.unk_word_idx
+
+        self.cls_token = self.bos_token = self.start_word
+        self.eos_token = self.sep_token = self.end_word
+        self.pad_token = self.pad_word
+        self.unk_token = self.unk_word
+
+
+    def _add_word(self, word):
         """
-        - Build vocabulary from list of datasets
-        - Argument: 
-                    + datasets:     list of datasets
+        Add a token to the vocabulary.
         """
-        if not isinstance(datasets, list):
-            datasets = [datasets]
-        print("Building vocabulary...")
-        for dataset in datasets:
-            self.fns = dataset.txt_data
-            for sentence in tqdm(self.fns):
-                for token in self.tokenizer.tokenize(sentence):
-                    if token not in self.stoi:
-                        self.stoi[token] = self.vocab_size     #index
-                        self.itos[self.vocab_size] = token
-                        self.vocab_size += 1
-                        self.freqs[token] = 1
-                    else:
-                        self.freqs[token] +=1
-            self.freqs = {k: v for k, v in sorted(self.freqs.items(), key=lambda item: item[1], reverse = True)}
+        if not word in self._word2idx.keys():
+            self._word2idx[word] = self.vocab_size
+            self.freqs[word] = 0
+            self._idx2word[self.vocab_size] = word
+            self.vocab_size += 1
+        self.freqs[word] += 1
+
+    @staticmethod
+    def from_pickle(pkl):
+        """
+        Load the vocabulary from pickle file
+        """
+        assert os.path.exists(pkl), f"{pkl} not exists"
+        with open(pkl, 'rb') as f:
+            vocab = pickle.load(f)
         
-        # Reduce vocabulary only contains tokens with min freqs
-        if self.min_freqs is not None and self.min_freqs > 1:
-            self.reset()
-            new_freqs = {}
-            list_freqs = list(self.freqs.items())
-            for token, freqs in list_freqs:
-                if freqs >= self.min_freqs:
-                    new_freqs[token] = freqs
-                    self.stoi[token] = self.vocab_size     #index
-                    self.itos[self.vocab_size] = token
-                    self.vocab_size += 1
-            self.freqs = new_freqs
+        return vocab
+
+    @staticmethod
+    def from_coco_json(json_file, max_size=None, min_freq=None, tokenizer=None):
+        """
+        Build vocabulary from JSON file in COCO format 
+        """
+
+        assert os.path.exists(json_file), f"{json_file} not exists"
+        coco = COCO(json_file)
+
+        image_ids = coco.getImgIds()
+
+        texts = []
+        for image_id in image_ids:
+            ann_ids = coco.getAnnIds(imgIds=image_id)
+            anns = coco.loadAnns(ann_ids)
+            texts += [i['caption'] for i in anns]
+
+        return Vocabulary.from_list(
+            texts, max_size=max_size, 
+            min_freq=min_freq, tokenizer=tokenizer)
+
+    @staticmethod
+    def from_list(texts, max_size=None, min_freq=None, tokenizer=None):
+        """
+        Vocabulary from list of texts
+        """
+        
+        if tokenizer is None:
+            tokenizer = Preprocess([
+                Consecutive(),
+                RemoveEmoji(),
+                WordTokenizer()
+            ])
+
+        vocab = Vocabulary(
+            max_size=max_size,
+            min_freq=min_freq)
+
+        token_lst = tokenizer(texts)
+        vocab.build_vocab(token_lst)
+
+        return vocab
+
+    def build_vocab(self, lst_tokens):
+        """
+        Build vocab from list of tokens, limit to min_freq and max_size
+        """
+        freqs = {}
+
+        # Calculate frequency of words
+        for tokens in lst_tokens:
+            for word in tokens:
+                if word not in self._special_tokens.values() and word not in freqs.keys():
+                    freqs[word] = 0
+                freqs[word] += 1
+
+        # Sort words by frequency
+        sorted_freqs = {k: v for k, v in sorted(freqs.items(), key=lambda item: item[1], reverse=True)}
+
+        # Max size
+        if self.max_size is not None:
+            sorted_freqs =  {k: v for i, (k, v) in enumerate(sorted_freqs.items()) if i < self.max_size}
+
+        # Filter low frequency words
+        if self.min_freq is not None:
+            sorted_freqs =  {k: v for k, v in sorted_freqs.items() if v >= self.min_freq}
+
+        for word, freq in sorted_freqs.items():
+            self._word2idx[word] = self.vocab_size
+            self._idx2word[self.vocab_size] = word
+            self.vocab_size += 1
+            self.freqs[word] = freq
+
+
+    def convert_ids_to_tokens(self, tok_ids):
+        """
+        Convert token ids to texts
+        """
+        result = []
+        for tok in tok_ids:
+            word = self.itos(tok)
+            result.append(word)
+        return result
+
+    def itos(self, idx):
+        if not idx in self._idx2word.keys():
+            return self._idx2word[self.unk_word_idx]
+        return self._idx2word[idx]
+
+    def stoi(self, word):
+        if not word in self._word2idx.keys():
+            return self._word2idx[self.unk_word]
+        return self._word2idx[word]
+
+    def get_vocab(self):
+        return self._word2idx
+
+    def get_freqs(self):
+        return self.freqs
+
+    def save_pickle(self, path):
+        """
+        Save vocab to pickle
+        """
+        with open(path, 'wb') as f:
+            pickle.dump(self, f, protocol=pickle.HIGHEST_PROTOCOL)
+
+    def convert_tokens_to_ids(self, tokens, max_len=None):
+        """
+        Convert list of tokens to ids
+        """
+        if max_len is not None:
+            token_length = len(tokens)
+            if max_len < token_length:
+                tokens = tokens[:max_len]
+            else:
+                for _ in range(max_len - token_length):
+                    tokens.append(self.pad_token())
+        return [self.stoi(tok) for tok in tokens]
     
-        # Reduce vocabulary size to max size
-        if self.max_size is not None and self.max_size< self.vocab_size:
-            self.max_size = min(self.max_size, self.vocab_size)
-            self.reset()
-            
-            new_freqs = {}
-            list_freqs = list(self.freqs.items())
-            for token, freq in list_freqs:
-                if self.vocab_size >= self.max_size:
-                    break
-                new_freqs[token] = freq
-                self.stoi[token] = self.vocab_size     #index
-                self.itos[self.vocab_size] = token
-                self.vocab_size += 1
-            self.freqs = new_freqs    
-                    
-        print("Vocabulary built!")
+    def tokenize(self, texts, max_len=None):
+        result = []
+        for text in texts:
+            tokens = word_tokenize(text)
+            ids = self.convert_tokens_to_ids(tokens, max_len)
+            result.append(ids)
+
+        return result
+
+    def __call__(self, texts, max_len=None):
+        return self.tokenize(texts, max_len=max_len)
         
+    def __len__(self):
+        return len(self._word2idx)
+
+    def __str__(self) -> str:
+        s = f"Vocabulary size: {self.vocab_size}"
+        return s
+
     def most_common(self, topk = None, ngrams = None):
         """
         Return a dict of most common words
@@ -175,7 +288,6 @@ class CustomVocabulary(data.Dataset):
                 
             
         return common_dict
-    
 
     def plot(self, types = None, topk = 100, figsize = (8,8) ):
         """
@@ -232,23 +344,14 @@ class CustomVocabulary(data.Dataset):
             
         plt.legend()
         plt.show()
-    
-    def save(self, path):
-        import dill
-        output = open(path, "wb")
-        dill.dump(self, output)
-        output.close()
 
-    def load(self, path):
-        import dill
-        output = dill.load(open(path,'rb'))
-        self = output
-        
-    def __len__(self):
-        return self.vocab_size
-        
-    def __str__(self):
-        s = "Custom Vocabulary  \n"
-        line = "-------------------------------\n"
-        s1 = "Number of unique words in dataset: " + str(self.vocab_size) + '\n'
-        return s + line + s1 
+if __name__ == '__main__':
+    vocab = Vocabulary.from_coco_json('./val.json', max_size=5000)
+    vocab.save_pickle('vocab.pkl')
+    texts = ["Various glass items are displayed on a glass shelf in a window .",
+    "A man trying to shoo away a mongoose with a broom , while a man watches from behind ."]
+
+    outputs = vocab(texts, max_len=32)
+    print(outputs[1])
+    
+    
