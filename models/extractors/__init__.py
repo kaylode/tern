@@ -1,2 +1,0 @@
-from .image_extractors import _get_cnn_basemodel
-from .text_extractors import _get_bert_basemodel

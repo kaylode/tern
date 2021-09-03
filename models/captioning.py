@@ -1,4 +1,3 @@
-from numpy.lib.arraysetops import isin
 from .base_model import BaseModel
 from .transformer import Transformer, TransformerBottomUp
 
