@@ -1,30 +1,22 @@
 settings:
   #################   DATASET CONFIG   ###################
 
-  project_name: "shopee-matching"    # also the folder name of the dataset that under ./data folder
-  train_imgs: images/train
-  val_imgs: images/train
-  test_imgs: images/test
-  train_anns: annotations/train_clean3.csv
-  val_anns: annotations/train_clean3.csv
+  project_name: "retrieval"    # also the folder name of the dataset that under ./data folder
+  train_imgs: 
+  val_imgs: 
+  train_anns: 
+  val_anns: 
+  feat_dir:
+  text_dir:
 
   #################   TRAINING CONFIG   ###################
   
-  model_name: 'efficient_bert'
-  image_extractor: 'efficientnet_b2' 
-  text_extractor: 'indolem/indobert-base-uncased'
-  out_dim: 512
-  cache_dir: '/home/pmkhoi/source/shopee-matching/augmentations/augment_models/indobert'
+  text_extractor: 'distilbert-base-uncased'
 
-  #pretrained_backbone: ''                  # Pretrained backbone
-  
-  gpu_devices: '0,1'                     # supports multi-gpus
+  gpu_devices: '0'                     # supports multi-gpus
   num_epochs: 100
-  batch_size: 256
-  num_workers: 4
-  
-  image_size: [224,224]               # should be square to prevent bugs [512, 640, 768, 896, 1024, 1280, 1280, 1536, 1536]
-  keep_ratio: False                     # whether to use resize padding
+  batch_size: 128
+  num_workers: 2
 
   # learning rate policy
   lr_policy:
@@ -38,7 +30,7 @@ settings:
                                         # if need to specify more scheduler arguments, do it here
 
   # gradient accumulation
-  mixed_precision: True                # whether to use nvidia apex
+  mixed_precision: False                # whether to use nvidia apex
   total_accumulate_steps: 0           # step * batch_size, not use if equal 0
 
   # Test time augmentation
