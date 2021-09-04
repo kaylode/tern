@@ -1,6 +1,7 @@
 from metrics import *
 from datasets import *
 from models import *
+from losses import *
 from trainer import *
 from augmentations import *
 from loggers import *
