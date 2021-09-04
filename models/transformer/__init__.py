@@ -1,4 +1,3 @@
-import copy
 import torch.nn as nn
 from models.encoder import EncoderBottomUp, EncoderBERT
 from .utils import init_xavier

@@ -1,2 +1,2 @@
 from .retrieval import *
-from .backbone import *
+from .encoder import EncoderBERT, EncoderBottomUp
