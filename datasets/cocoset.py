@@ -216,17 +216,14 @@ class NumpyFeatureDataset(Dataset):
     """
     Coco dataset
     """
-    def __init__(self, root_dir, ann_path, tokenizer, npy_dir):
+    def __init__(self, root_dir, ann_path, feat_dir, text_dir):
 
         self.root_dir = root_dir
         self.ann_path = ann_path
-        self.npy_dir = npy_dir
-        self.tokenizer = tokenizer
+        self.feat_dir = feat_dir
+        self.text_dir = text_dir
         self.coco = COCO(ann_path)
         self.image_ids = self.coco.getImgIds()
-
-    def get_feature_dim(self):
-        return 2048 # bottom up attention features
 
     def __len__(self):
         return len(self.image_ids)
@@ -238,8 +235,8 @@ class NumpyFeatureDataset(Dataset):
 
     def load_numpy(self, image_index):
         image_info = self.coco.loadImgs(self.image_ids[image_index])[0]
-        npy_path = os.path.join(self.npy_dir, image_info['file_name'][:-4]+'.npz')
-        npy_loc_path = os.path.join(self.npy_dir, image_info['file_name'][:-4]+'_loc.npz')
+        npy_path = os.path.join(self.feat_dir, image_info['file_name'][:-4]+'.npz')
+        npy_loc_path = os.path.join(self.feat_dir, image_info['file_name'][:-4]+'_loc.npz')
         return npy_path, npy_loc_path
 
     def load_annotations(self, image_index, return_all=False):
@@ -247,23 +244,25 @@ class NumpyFeatureDataset(Dataset):
         annotations_ids = self.coco.getAnnIds(imgIds=self.image_ids[image_index])
 
         if not return_all:
-            if len(annotations_ids)>1:
-                ann_id = random.choice(annotations_ids)
+            ann_id = random.choice(annotations_ids)
             anns = self.coco.loadAnns(ann_id)[0]['caption']
+            language_path = os.path.join(self.text_dir, f"{ann_id}.npz")
+            return anns, language_path
         else:
             anns = self.coco.loadAnns(annotations_ids)
             anns = [i['caption'] for i in anns]
-        return anns
+            return anns
 
     def __getitem__(self, index):
         image_id = self.image_ids[index]
         image_path = self.load_image(index)
         npy_path, npy_loc_path = self.load_numpy(index)
-        text = self.load_annotations(index)
+        text, language_path = self.load_annotations(index)
 
         return {
             'image_id': image_id,
             'npy_path': npy_path,
+            'language_path': language_path,
             "npy_loc_path": npy_loc_path,
             'image_path': image_path,
             'text': text,
@@ -274,7 +273,9 @@ class NumpyFeatureDataset(Dataset):
         image_paths = [s['image_path'] for s in batch]
         npy_paths = [s['npy_path'] for s in batch]
         npy_loc_paths = [s['npy_loc_path'] for s in batch]
+        language_paths = [s['language_path'] for s in batch]
         image_ids = [s['image_id'] for s in batch]
+        texts = [s['text'] for s in batch]
         
         image_names = []
         ori_imgs = []
@@ -288,11 +289,14 @@ class NumpyFeatureDataset(Dataset):
         
         npy_feats = []
         npy_loc_feats = []
-        for npy_path, npy_loc_path in zip(npy_paths, npy_loc_paths):
+        npy_lang_feats = []
+        for npy_path, npy_loc_path, language_path in zip(npy_paths, npy_loc_paths, language_paths):
             npy_feat = np.load(npy_path, mmap_mode='r')['arr_0']
             npy_loc_feat = np.load(npy_loc_path, mmap_mode='r')['arr_0']
+            npy_lang_feat = np.load(language_path, mmap_mode='r')['arr_0']
             npy_feats.append(npy_feat)
             npy_loc_feats.append(npy_loc_feat)
+            npy_lang_feats.append(npy_lang_feat)
 
         npy_feats = np.stack(npy_feats, axis=0)
         npy_loc_feats = np.stack(npy_loc_feats, axis=0)
@@ -300,25 +304,8 @@ class NumpyFeatureDataset(Dataset):
         feats = torch.from_numpy(npy_feats).float()
         loc_feats = torch.from_numpy(npy_loc_feats).float()
 
-        image_masks = torch.ones(feats.shape[:2])
-
-        texts = [s['text'] for s in batch]
-        
-        tokens = self.tokenizer(texts, truncation=True)
-        tokens = [np.array(i) for i in tokens['input_ids']]
-
-        texts_ = make_feature_batch(
-            tokens, pad_token=self.tokenizer.pad_token_id)
-        
-        texts_inp = texts_[:, :-1]
-        texts_res = texts_[:, 1:]
-
-        text_masks = create_masks(
-            texts_inp,
-            pad_token=self.tokenizer.pad_token_id, 
-            is_tgt_masking=True)
-        
-        texts_inp = texts_inp.squeeze(-1)
+        lang_feats = make_feature_batch(npy_lang_feats, pad_token=0)
+        lang_feats = lang_feats.float()
 
         return {
             'image_ids': image_ids,
@@ -326,11 +313,8 @@ class NumpyFeatureDataset(Dataset):
             'ori_imgs': ori_imgs,
             'feats': feats,
             'loc_feats': loc_feats,
-            'image_masks': image_masks.long(),
+            'lang_feats': lang_feats,
             'tgt_texts_raw': texts,
-            'texts_inp': texts_inp.long(),
-            'texts_res': texts_res.long(),
-            'text_masks': text_masks.long(),
         }
 
     def __str__(self): 

@@ -7,6 +7,7 @@ def make_feature_batch(features,  pad_token=0):
     each feature is [K, model_dim] where K is number of objects of each image
     This function pad max length to each feature and tensorize, also return the masks
     """
+    model_dim = features[0].shape[-1]
 
     # Find maximum length
     max_len=0
@@ -16,17 +17,16 @@ def make_feature_batch(features,  pad_token=0):
     
     # Init batch
     batch_size = len(features)
-    batch = np.ones((batch_size, max_len))
+    batch = np.ones((batch_size, max_len, model_dim))
     batch *= pad_token
         
     # Copy data to batch
     for i, feat in enumerate(features):
         feat_len = feat.shape[0]
-        batch[i, :feat_len] = feat
+        batch[i, :feat_len, :] = feat
 
     batch = torch.from_numpy(batch).type(torch.float32)
     return batch  
-
 
 def create_masks(features, pad_token=0, is_tgt_masking=False):
     """
