@@ -1,3 +1,4 @@
+from datasets.dataloader import NumpyFeatureLoader, RawNumpyFeatureLoader
 from metrics import *
 from datasets import *
 from models import *
@@ -127,15 +128,18 @@ def get_dataset_and_dataloader(config):
     device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
     
     
-    trainloader = NumpyFeatureDataset(
+    trainloader = NumpyFeatureLoader(
+        batch_size=config.batch_size,
         root_dir=config.image_path,
         ann_path=config.train_anns, 
         feat_dir=config.feat_dir, 
-        text_dir=config.text_dir)
+        text_dir=config.text_dir,
+        device=device)
 
-    valloader = NumpyFeatureDataset(
+    valloader = RawNumpyFeatureLoader(
+        batch_size=config.batch_size,
         root_dir=config.image_path,
-        ann_path=config.train_anns, 
+        ann_path=config.val_anns, 
         feat_dir=config.feat_dir, 
         text_dir=config.text_dir)
 
