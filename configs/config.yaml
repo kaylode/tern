@@ -16,7 +16,7 @@ settings:
 
   gpu_devices: '0'                     # supports multi-gpus
   num_epochs: 100
-  batch_size: 128
+  batch_size: 256
   num_workers: 2
 
   # learning rate policy
@@ -27,7 +27,7 @@ settings:
     weight_decay: 0.0005
 
   lr_scheduler:
-    name: "cosine"                      #[plateau | cosine | 1cycle-yolo | 1cycle]
+    name: "cosine2"                      #[plateau | cosine | 1cycle-yolo | 1cycle]
                                         # if need to specify more scheduler arguments, do it here
 
   # gradient accumulation
