@@ -13,21 +13,27 @@ class EncoderBERT(nn.Module):
         encoded embeddings shape [batch * input length * model_dim]
     """
 
-    def __init__(self, version='distilbert-base-uncased'):
+    def __init__(self, version='distilbert-base-uncased', precomp=True):
         super().__init__()
 
-        model = AutoModel.from_pretrained(version)
+        self.precomp = precomp
 
-        tokenizer = AutoTokenizer.from_pretrained(
-            version, add_special_tokens = 'true', padding = 'longest')
+        if not self.precomp:
+            model = AutoModel.from_pretrained(version)
 
-        self.pipeline = pipeline(
-            'feature-extraction', 
-            model=model, 
-            tokenizer=tokenizer, 
-            device = 0)
+            tokenizer = AutoTokenizer.from_pretrained(
+                version, add_special_tokens = 'true', padding = 'longest')
+
+            self.pipeline = pipeline(
+                'feature-extraction', 
+                model=model, 
+                tokenizer=tokenizer, 
+                device = 0)
 
     def forward(self, inputs):
-        with torch.no_grad():
-            outputs = self.pipeline(inputs)
-        return np.array(outputs, dtype=np.float32)
+        if not self.precomp:
+            with torch.no_grad():
+                outputs = self.pipeline(inputs)
+            return np.array(outputs, dtype=np.float32)
+        else:
+            return inputs
