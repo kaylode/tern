@@ -3,8 +3,7 @@ from models.encoder import EncoderBottomUp, EncoderBERT, TransformerEncoder
 from models.transformer import init_xavier, l2norm
 
 
-
-class TransformerBottomUp(nn.Module):
+class TERN(nn.Module):
     """
     Transformer model
     :input:
@@ -19,7 +18,7 @@ class TransformerBottomUp(nn.Module):
         next words probability shape [batch * input length * vocab_dim]
     """
     def __init__(self, embed_dim, precomp_bert=True):
-        super().__init__()
+        super(TERN, self).__init__()
         self.name = "Transformer"
 
         self.encoder_v = EncoderBottomUp(feat_dim=2048, d_model=768, d_ff=2048, N=4, heads=4, dropout=0.1)

@@ -8,6 +8,8 @@ class TransformerEncoder(nn.Module):
     Shared weight transformer encoder
     """
     def __init__(self, d_model, d_ff, N, heads, dropout):
+        super().__init__()
+        self.N = N
         self.layers = get_clones(EncoderLayer(d_model, d_ff, heads, dropout), N)
         self.norm = LayerNorm(d_model)  
 
