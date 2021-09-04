@@ -21,7 +21,7 @@ def train(args, config):
     device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
     devices_info = get_devices_info(config.gpu_devices)
     
-    trainset, valset, trainloader, valloader = get_dataset_and_dataloader(config, args.bottom_up)
+    trainset, valset, trainloader, valloader = get_dataset_and_dataloader(config)
 
     net = TERN(1024)
 
