@@ -1,7 +1,7 @@
 import torch.nn as nn
 from models.encoder import EncoderBottomUp, EncoderBERT, TransformerEncoder
 from models.transformer import init_xavier, l2norm
-
+from .captioning import Captioning
 
 class TERN(nn.Module):
     """
@@ -19,7 +19,7 @@ class TERN(nn.Module):
     """
     def __init__(self, embed_dim, precomp_bert=True):
         super(TERN, self).__init__()
-        self.name = "Transformer"
+        self.name = "TERN"
 
         self.encoder_v = EncoderBottomUp(feat_dim=2048, d_model=768, d_ff=2048, N=4, heads=4, dropout=0.1)
         self.encoder_l = EncoderBERT(precomp=precomp_bert)
