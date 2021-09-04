@@ -127,22 +127,17 @@ def get_dataset_and_dataloader(config):
     device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
     
     
-    trainset = NumpyFeatureDataset(
+    trainloader = NumpyFeatureDataset(
         root_dir=config.image_path,
         ann_path=config.train_anns, 
         feat_dir=config.feat_dir, 
         text_dir=config.text_dir)
 
-    valset = NumpyFeatureDataset(
+    valloader = NumpyFeatureDataset(
         root_dir=config.image_path,
         ann_path=config.train_anns, 
         feat_dir=config.feat_dir, 
         text_dir=config.text_dir)
-
-    valloader = DataLoader(
-        valset, batch_size=config.batch_size,
-        collate_fn=valset.collate_fn,
-    )
 
     return  trainloader.dataset, valloader.dataset, trainloader, valloader
 
