@@ -122,34 +122,27 @@ def get_lr_scheduler(optimizer, lr_config, **kwargs):
     return scheduler, step_per_epoch
 
 
-def get_dataset_and_dataloader(config, bottom_up):
+def get_dataset_and_dataloader(config):
 
     device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
     
-    if not bottom_up:
-        trainloader = EqualLengthTextLoader(
-            ann_path=config.train_anns, root_dir=config.image_path,
-            image_size=config.image_size, keep_ratio=config.keep_ratio,
-            tokenizer=AutoTokenizer.from_pretrained(config.language),
-            type='train', batch_size=config.batch_size, device=device)
+    
+    trainset = NumpyFeatureDataset(
+        root_dir=config.image_path,
+        ann_path=config.train_anns, 
+        feat_dir=config.feat_dir, 
+        text_dir=config.text_dir)
 
-        valloader = RawTextLoader(
-            ann_path=config.val_anns, root_dir=config.image_path,
-            image_size=config.image_size, keep_ratio=config.keep_ratio,
-            tokenizer=AutoTokenizer.from_pretrained(config.language),
-            type='val', batch_size=config.batch_size)
-    else:
-        trainloader = NumpyFeatureLoader(
-            root_dir=config.image_path, npy_dir=config.npy_dir,
-            batch_size=config.batch_size,
-            ann_path=config.train_anns, device=device,
-            tokenizer=AutoTokenizer.from_pretrained(config.language))
+    valset = NumpyFeatureDataset(
+        root_dir=config.image_path,
+        ann_path=config.train_anns, 
+        feat_dir=config.feat_dir, 
+        text_dir=config.text_dir)
 
-        valloader = RawNumpyFeatureLoader(
-            root_dir=config.image_path, npy_dir=config.npy_dir,
-            batch_size=32,
-            ann_path=config.val_anns,
-            tokenizer=AutoTokenizer.from_pretrained(config.language))
+    valloader = DataLoader(
+        valset, batch_size=config.batch_size,
+        collate_fn=valset.collate_fn,
+    )
 
     return  trainloader.dataset, valloader.dataset, trainloader, valloader
 
