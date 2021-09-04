@@ -2,9 +2,7 @@ import torch
 import torch.nn as nn
 import copy
 
-from models.transformer.embedding import FeatureEmbedding, SpatialEncoding
-from models.transformer.layers import EncoderLayer
-from models.transformer.norm import LayerNorm
+from models.transformer import FeatureEmbedding, SpatialEncoding, EncoderLayer, LayerNorm
 
 def get_clones(module, N):
     """
