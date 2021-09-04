@@ -2,7 +2,6 @@ import cv2
 import numpy as np
 import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
-from .custom import CustomCutout
 from configs import Config
 
 MEAN = [0.485, 0.456, 0.406]
