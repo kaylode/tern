@@ -18,12 +18,12 @@ class TransformerBottomUp(nn.Module):
     :output:
         next words probability shape [batch * input length * vocab_dim]
     """
-    def __init__(self, embed_dim):
+    def __init__(self, embed_dim, precomp_bert=True):
         super().__init__()
         self.name = "Transformer"
 
         self.encoder_v = EncoderBottomUp(feat_dim=2048, d_model=768, d_ff=2048, N=4, heads=4, dropout=0.1)
-        self.encoder_l = EncoderBERT()
+        self.encoder_l = EncoderBERT(precomp=precomp_bert)
         
         self.img_proj = nn.Linear(768, embed_dim)
         self.cap_proj = nn.Linear(768, embed_dim)
