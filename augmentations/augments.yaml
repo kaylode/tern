@@ -2,7 +2,7 @@ settings:
 
   flip:
     prob:             0.8
-    hflip:            0.5
+    hflip:            0.0
     shift_scale_crop:
       prob:           0.3
       shift_limit:    0.1
