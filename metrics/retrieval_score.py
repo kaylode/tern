@@ -8,16 +8,11 @@ import torch.nn as nn
 import torch.utils.data as data
 from tqdm import tqdm
 
-USE_PHASH=False
 try:
     import faiss
     USE_FAISS=True
 except ImportError as e:
     USE_FAISS=False
-
-if USE_PHASH:
-    info_df = pd.read_csv('./data/shopee-matching/annotations/train_clean2.csv')
-    postid_phash_mapping = {k:v for k,v in zip(info_df['posting_id'], info_df['image_phash'])}
 
 def get_dist_func(name):
     if name == 'cosine':
@@ -34,21 +29,6 @@ def get_retrieval_embedding(img_feat, txt_feat, embedding_type):
         return txt_feat
     else:
         return np.concatenate([img_feat, txt_feat], axis=-1)
-
-def phash_trick(post_id, pred_post_ids=[], pred_scores=[]):
-    phash_id = postid_phash_mapping[post_id] # phash of current post
-    post_ids_same_phash = info_df[info_df['image_phash'] == phash_id].posting_id.tolist() # all posts with same phash
-    phash_scores = [1.0] * len(post_ids_same_phash)
-
-    new_post_ids = post_ids_same_phash
-    new_post_scores = phash_scores
-
-    for post_id, post_score in zip(pred_post_ids,pred_scores):
-        if post_id not in new_post_ids:
-            new_post_ids.append(post_id)
-            new_post_scores.append(post_score)
-
-    return new_post_ids, new_post_scores
 
 def save_results(query_results):
     np.save('./results/query_results.npy', query_results, allow_pickle=True)
@@ -69,8 +49,6 @@ def get_top_k(object_dist_score, top_k=5, max_distance=2.0):
         top_k_scores = top_k_scores[keep_indexes]
 
     return top_k_indexes, top_k_scores
-
-
 
 
 """
@@ -125,7 +103,6 @@ class RetrievalScore():
             queries_set, 
             gallery_set=None, 
             metric_names=['FT', "ST", "MAP", "NN", "F1"],
-            retrieval_pairing='txt-to-img', 
             max_distance = 1.3,
             top_k=10,
             save_results=True):
@@ -152,16 +129,14 @@ class RetrievalScore():
         self.top_k = top_k                  # Query top k candidates
         self.max_distance = max_distance    # Query candidates with distances lower than threshold
         self.save_results = save_results    # Save for vizualization
+        self.queries_embedding_type = 'txt'
+        self.gallery_embedding_type = 'img'
 
         self.queries_embedding = [] 
         self.gallery_embedding = []
         self.queries_post_ids = []
         self.gallery_post_ids = []
         self.targets_post_ids = []
- 
-        self.retrieval_pairing = retrieval_pairing
-        self.queries_embedding_type = retrieval_pairing.split('-')[0]
-        self.gallery_embedding_type = retrieval_pairing.split('-')[2]
 
         # Distance function
         self.dist_func = get_dist_func('cosine')
@@ -192,8 +167,8 @@ class RetrievalScore():
 
     def compute_queries(self):
         for idx, batch in enumerate(tqdm(self.queries_loader)):
-            post_ids = batch['post_ids']
-            target_ids = batch['targets']
+            post_ids = batch['image_ids']
+            target_ids = batch['image_ids']
             img_feats, txt_feats = self.model.inference_step(batch)
 
             # Get embedding of each item in batch
@@ -213,7 +188,7 @@ class RetrievalScore():
 
     def compute_gallery(self):
         for idx, batch in enumerate(tqdm(self.gallery_loader)):
-            post_ids = batch['post_ids']
+            post_ids = batch['image_ids']
             img_feats, txt_feats = self.model.inference_step(batch)
 
             # Get embedding of each item in batch
@@ -256,13 +231,9 @@ class RetrievalScore():
             pred_post_ids = self.gallery_post_ids[top_k_indexes]
             pred_post_ids = pred_post_ids.tolist()
 
-            # Add post with same phash into prediction list
-            if USE_PHASH:
-                pred_post_ids, top_k_scores = phash_trick(current_post_id, pred_post_ids, top_k_scores)
-
             if self.save_results:
                 self.post_results_dict[current_post_id] = {
-                    'post_ids': pred_post_ids,
+                    'image_ids': pred_post_ids,
                     'scores': top_k_scores 
                 }
             
@@ -293,13 +264,9 @@ class RetrievalScore():
             pred_post_ids = self.gallery_post_ids[top_k_indexes]
             pred_post_ids = pred_post_ids.tolist()
 
-            # Add post with same phash into prediction list
-            if USE_PHASH:
-                pred_post_ids, top_k_scores = phash_trick(current_post_id, pred_post_ids, top_k_scores)
-
             if self.save_results:
                 self.post_results_dict[current_post_id] = {
-                    'post_ids': pred_post_ids,
+                    'image_ids': pred_post_ids,
                     'scores': top_k_scores 
                 }
             
@@ -347,20 +314,3 @@ class RetrievalScore():
 
     def __str__(self):
         return str(self.value())
-        
-if __name__ == '__main__':
-    from utils.getter import *
-    config = Config('/home/pmkhoi/source/shopee-matching/configs/config.yaml')
-    device = torch.device("cuda" if torch.cuda.is_available() else 'cpu') 
-    trainset, valset, trainloader, valloader = get_dataset_and_dataloader(config)
-    net = get_model(None, config)
-    model = Retrieval(
-            model = net,
-            device = device)
-
-
-    metric = MeanF1Score(valloader, valloader)
-    metric.update(model)
-    with torch.no_grad():
-        print(metric)
-    
