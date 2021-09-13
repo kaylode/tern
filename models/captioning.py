@@ -38,7 +38,7 @@ class Captioning(BaseModel):
         loss_dict = {'T': loss.item()}
         return loss, loss_dict
 
-    def inference_step(self, batch, tgt_tokenizer):
+    def inference_step(self, batch):
         
         src_inputs = batch['feats'].to(self.device)
         loc_src_inputs = batch['loc_feats'].to(self.device)
