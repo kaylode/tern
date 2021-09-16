@@ -29,8 +29,15 @@ def train(args, config):
 
     criterion = ContrastiveLoss(margin=0.2, measure='dot', max_violation=True)
 
+    metric = RetrievalScore(
+            valset, valset, 
+            max_distance = 1.3,
+            top_k=10,
+            save_results=True)
+
     model = Captioning(
             model = net,
+            metrics = metric,
             criterion=criterion,
             scaler=NativeScaler(),
             optimizer= optimizer,
