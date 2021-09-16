@@ -49,7 +49,7 @@ class Captioning(BaseModel):
             spatial_inputs=loc_src_inputs, 
             lang_inputs=lang_src_inputs)
 
-        return outputs_l, outputs_v  
+        return outputs_v.cpu().detach().numpy(), outputs_l.cpu().detach().numpy()
 
     def evaluate_step(self, batch):
 

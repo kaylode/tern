@@ -31,6 +31,8 @@ def get_retrieval_embedding(img_feat, txt_feat, embedding_type):
         return np.concatenate([img_feat, txt_feat], axis=-1)
 
 def save_results(query_results):
+    if not os.path.exists('./results/'):
+        os.mkdir('./results/')
     np.save('./results/query_results.npy', query_results, allow_pickle=True)
 
 def get_top_k(object_dist_score, top_k=5, max_distance=2.0):
@@ -146,7 +148,7 @@ class RetrievalScore():
 
         if USE_FAISS:
             res = faiss.StandardGpuResources()  # use a single GPU
-            self.faiss_pool = faiss.IndexFlatL2(512)
+            self.faiss_pool = faiss.IndexFlatL2(1024)
             self.faiss_pool = faiss.index_cpu_to_gpu(res, 0, self.faiss_pool)
 
     def reset(self):
@@ -170,7 +172,7 @@ class RetrievalScore():
             post_ids = batch['image_ids']
             target_ids = batch['image_ids']
             img_feats, txt_feats = self.model.inference_step(batch)
-
+         
             # Get embedding of each item in batch
             batch_size = img_feats.shape[0]
             for i in range(batch_size):
@@ -256,6 +258,7 @@ class RetrievalScore():
         self.faiss_pool.add(self.gallery_embedding)
         top_k_scores_all, top_k_indexes_all = self.faiss_pool.search(self.queries_embedding, k=self.top_k)
         
+        
         for idx, (top_k_scores, top_k_indexes) in enumerate(zip(top_k_scores_all, top_k_indexes_all)):
           
             current_post_id = self.queries_post_ids[idx]
@@ -272,7 +275,7 @@ class RetrievalScore():
             
             for metric_name in self.metric_names:
                 metric_fn = metrics_mapping[metric_name]
-                score = metric_fn(target_post_ids, pred_post_ids)
+                score = metric_fn([target_post_ids], pred_post_ids)
                 total_scores[metric_name].append(score)
 
         return total_scores
