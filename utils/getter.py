@@ -133,7 +133,7 @@ def get_dataset_and_dataloader(config):
         root_dir=config.train_imgs,
         ann_path=config.train_anns, 
         feat_dir=config.feat_dir, 
-        text_dir=config.train_text_dir,
+        text_dir=config.text_dir,
         device=device)
 
     valloader = RawNumpyFeatureLoader(
@@ -141,7 +141,7 @@ def get_dataset_and_dataloader(config):
         root_dir=config.val_imgs,
         ann_path=config.val_anns, 
         feat_dir=config.feat_dir, 
-        text_dir=config.val_text_dir)
+        text_dir=config.text_dir)
 
     return  trainloader.dataset, valloader.dataset, trainloader, valloader
 

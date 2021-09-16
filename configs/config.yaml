@@ -2,13 +2,12 @@ settings:
   #################   DATASET CONFIG   ###################
 
   project_name: "retrieval"    # also the folder name of the dataset that under ./data folder
-  train_imgs: "/content/data/flickr30k/images"
-  val_imgs: "/content/data/flickr30k/images"
+  train_imgs: "/content/data/flickr30k_images/flickr30k_images"
+  val_imgs: "/content/data/flickr30k_images/flickr30k_images"
   train_anns: "/content/data/train.json"
   val_anns: "/content/data/val.json"
-  feat_dir: "/content/data/bottomup_features_np"
-  train_text_dir: "/content/data/text_features_np/train"
-  val_text_dir: "/content/data/text_features_np/val"
+  feat_dir: "/content/data/bottom_up"
+  text_dir: "/content/data/bert_features"
 
   #################   TRAINING CONFIG   ###################
   
