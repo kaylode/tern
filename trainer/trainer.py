@@ -210,43 +210,41 @@ class Trainer():
                 class_names=None,
                 config=self.cfg)
 
-        if self.visualize_when_val:
-            self.visualize_batch()
+        # if self.visualize_when_val:
+        #     self.visualize_batch()
         
     def visualize_batch(self):
-        from models.transformer import draw_attention_map
-        from utils.utils import draw_image_caption
-
+        from utils.utils import draw_retrieval_results
+        # Vizualize Grad Class Activation Mapping
         if not os.path.exists('./samples'):
             os.mkdir('./samples')
 
-        result = {
-            'image_name': [],
-            'gt': [],
-            'pred': []
-        }
-        self.model.eval()
-        for idx, batch in enumerate(self.valloader):
+        # Retrieval dict {post_id: {'post_ids': [], 'scores': []}
+        retrieval_results = np.load('./results/query_results.npy', allow_pickle=True)
+        
+        batch = next(iter(self.valloader))
+        image_ids = batch['image_ids']
 
-            raw_targets = batch['tgt_texts_raw']
-            ori_imgs = batch['ori_imgs']
-            image_names = batch['image_names']
-            preds = self.model.inference_step(batch, self.valloader.tokenizer)
-            for i in range(len(ori_imgs)):
-                image_name = os.path.basename(image_names[i])
-                result['image_name'].append(image_name)
-                result['gt'].append(raw_targets[i])
-                result['pred'].append(preds[i])
+        query_pool = self.cfg.val_imgs
+        gallery_pool = self.cfg.train_imgs
 
-                fig = draw_image_caption(
-                    image = ori_imgs[i],
-                    text = f"GT: {raw_targets[i]} \n Pred: {preds[i]}")
-
-                tag = f"{image_name}"
-                self.logger.write_image(tag, fig, self.epoch)
-            break
+        for idx, image_id in enumerate(image_ids):
             
-        pd.DataFrame(result).to_csv('./samples/sample.csv', index=False)
+            gallery_image_ids = retrieval_results.item()[image_id]
+            
+            top_k_relevant_image_scores = gallery_image_ids['scores'][:5]
+            top_k_relevant_image_ids = gallery_image_ids['image_ids'][:5]
+
+            top_k_relevant_posts = df[df.posting_id.isin(top_k_relevant_image_ids)]
+            top_k_relevant_posts = [
+                (os.path.join(gallery_pool,image_name), title) for (image_name, title) in zip(
+                    top_k_relevant_posts['image'], 
+                    top_k_relevant_posts['cleaned_title'])
+            ]
+      
+            image_outname = os.path.join('samples', f'{self.epoch}_{self.iters}_{idx}.jpg')
+            fig = draw_retrieval_results(queries, top_k_relevant_posts, image_outname)
+            self.logger.write_image('samples', fig)
         
        
     def logging(self, logs, step):
