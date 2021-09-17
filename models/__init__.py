@@ -1,5 +1,5 @@
 import torch.nn as nn
-from models.encoder import EncoderBottomUp, EncoderBERT, TransformerEncoder
+from models.encoder import EncoderBottomUp, EncoderBERT, TransformerEncoder, ModalProjection
 from models.transformer import init_xavier, l2norm
 from .captioning import Captioning
 
@@ -21,25 +21,22 @@ class TERN(nn.Module):
         super(TERN, self).__init__()
         self.name = "TERN"
 
-        self.encoder_v = EncoderBottomUp(feat_dim=2048, d_model=768, d_ff=2048, N=4, heads=4, dropout=0.1)
-        self.encoder_l = EncoderBERT(precomp=precomp_bert)
+        self.encoder_v = EncoderBottomUp(feat_dim=2048, d_model=768, d_ff=2048, N=4, heads=2, dropout=0.1)
+        self.encoder_l = EncoderBERT(precomp=precomp_bert, d_model=768, d_ff=2048, N=4, heads=2, dropout=0.1)
         
-        self.img_proj = nn.Linear(768, embed_dim)
-        self.cap_proj = nn.Linear(768, embed_dim)
+        self.img_proj = ModalProjection(in_dim=768, out_dim=embed_dim)
+        self.cap_proj = ModalProjection(in_dim=768, out_dim=embed_dim)
 
         # Shared weight encoders
-        self.transformer_encoder = TransformerEncoder(d_model=1024, d_ff=2048, N=2, heads=4, dropout=0.1)
+        # self.transformer_encoder = TransformerEncoder(d_model=1024, d_ff=2048, N=2, heads=4, dropout=0.1)
         init_xavier(self)
 
     def forward(self, visual_inputs, spatial_inputs, lang_inputs):
         outputs_v = self.encoder_v(visual_inputs, spatial_inputs) #[B x 37 x d_model] (append CLS token to first)
         outputs_l = self.encoder_l(lang_inputs) #[B x Length+2 x d_model] (plus 2 special tokens)
 
-        outputs_v = self.img_proj(outputs_v)
-        outputs_l = self.cap_proj(outputs_l)
-
-        feats_v = self.transformer_encoder(outputs_v)
-        feats_l = self.transformer_encoder(outputs_l)
+        feats_v = self.img_proj(outputs_v).mean(dim=1)
+        feats_l = self.cap_proj(outputs_l).mean(dim=1)
 
         feats_l = l2norm(feats_l)
         feats_v = l2norm(feats_v)

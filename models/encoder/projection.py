@@ -17,5 +17,20 @@ class TransformerEncoder(nn.Module):
         for i in range(self.N):
             x = self.layers[i](x, mask=None)
         x = self.norm(x)
-        return x[:, 0, :]
+        return x
 
+class ModalProjection(nn.Module):
+    """
+    Project features into same space
+    """
+
+    def __init__(self, in_dim, out_dim):
+        super().__init__()
+
+        self.model = nn.Sequential(
+                nn.Linear(in_dim, in_dim),
+                nn.ReLU(),
+                nn.Linear(in_dim, out_dim))
+
+    def forward(self, x):
+        return self.model(x)
