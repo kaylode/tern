@@ -236,6 +236,7 @@ class RetrievalScore():
             if self.save_results:
                 self.post_results_dict[current_post_id] = {
                     'image_ids': pred_post_ids,
+                    'target_ids': target_post_ids,
                     'scores': top_k_scores 
                 }
             
@@ -270,6 +271,7 @@ class RetrievalScore():
             if self.save_results:
                 self.post_results_dict[current_post_id] = {
                     'image_ids': pred_post_ids,
+                    'target_ids': target_post_ids,
                     'scores': top_k_scores 
                 }
             

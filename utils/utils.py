@@ -71,10 +71,11 @@ def draw_image_caption(image, text, image_name=None, figsize=(10,10)):
 
     return fig
 
-def draw_retrieval_results(query, top_k_relevant, save_filename=None, figsize=(10,10)):
+def draw_retrieval_results(query, top_k_relevant, gt_path=None, save_filename=None, figsize=(10,10)):
     plt.close('all')
     fig=plt.figure(figsize=figsize)
-    columns = len(top_k_relevant)
+
+    columns = len(top_k_relevant) + 1
     for i, (image, score) in enumerate(top_k_relevant):
         img = Image.open(image)
         fig.add_subplot(1, columns, i+1)
@@ -82,6 +83,17 @@ def draw_retrieval_results(query, top_k_relevant, save_filename=None, figsize=(1
         plt.title(str(score))
         plt.tight_layout()
         plt.axis('off')
+
+
+    # Plot ground truth
+    img = Image.open(gt_path)
+    fig.add_subplot(1, columns, columns)
+    plt.imshow(img)
+    plt.title('Ground Truth')
+    plt.tight_layout()
+    plt.axis('off')
+    
+
     if save_filename is not None:
         plt.savefig(save_filename)
 

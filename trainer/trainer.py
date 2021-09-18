@@ -229,12 +229,14 @@ class Trainer():
             
             top_k_relevant_image_scores = gallery_ids['scores'][:5]
             top_k_relevant_image_ids = gallery_ids['image_ids'][:5]
+            ground_truth_id = gallery_ids['target_ids']
 
             top_k_relevant_image_paths = self.valloader.dataset.load_image_by_id(top_k_relevant_image_ids)
+            ground_truth_image_path = self.valloader.dataset.load_image_by_id(ground_truth_id)
             query = self.valloader.dataset.load_annotations_by_id(query_id)[0]
 
             top_k_relevant_results = [i for i in zip(top_k_relevant_image_paths, top_k_relevant_image_scores)]
-            fig = draw_retrieval_results(query, top_k_relevant_results, figsize=(20,6))
+            fig = draw_retrieval_results(query, top_k_relevant_results, gt_path = ground_truth_image_path, figsize=(25,6))
             self.logger.write_image(query, fig, step=self.epoch)
         
        
