@@ -77,7 +77,7 @@ def draw_retrieval_results(query, top_k_relevant, save_filename=None, figsize=(1
     columns = len(top_k_relevant)
     for i, (image, score) in enumerate(top_k_relevant):
         img = Image.open(image)
-        fig.add_subplot(1, columns, i)
+        fig.add_subplot(1, columns, i+1)
         plt.imshow(img)
         plt.title(str(score))
         plt.tight_layout()

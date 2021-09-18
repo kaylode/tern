@@ -210,24 +210,21 @@ class Trainer():
                 class_names=None,
                 config=self.cfg)
 
-        # if self.visualize_when_val:
-        #     self.visualize_batch()
+        if self.visualize_when_val:
+            self.visualize_batch()
         
     def visualize_batch(self):
         from utils.utils import draw_retrieval_results
         import random
-        # Vizualize Grad Class Activation Mapping
-        if not os.path.exists('./samples'):
-            os.mkdir('./samples')
 
         # Retrieval dict {post_id: {'post_ids': [], 'scores': []}
         retrieval_results = np.load('./results/query_results.npy', allow_pickle=True)
         
-        query_ids = retrieval_results.item().keys()
+        query_ids = list(retrieval_results.item().keys())
         query_ids = random.choices(query_ids, k=64)
 
         for idx, query_id in enumerate(query_ids):
-            
+            query_id = int(query_id)
             gallery_ids = retrieval_results.item()[query_id]
             
             top_k_relevant_image_scores = gallery_ids['scores'][:5]
@@ -236,9 +233,9 @@ class Trainer():
             top_k_relevant_image_paths = self.valloader.dataset.load_image_by_id(top_k_relevant_image_ids)
             query = self.valloader.dataset.load_annotations_by_id(query_id)[0]
 
-            top_k_relevant_results = zip(top_k_relevant_image_paths, top_k_relevant_image_scores)
-            fig = draw_retrieval_results(query, top_k_relevant_results, figsize=(20,20))
-            self.logger.write_image(query, fig)
+            top_k_relevant_results = [i for i in zip(top_k_relevant_image_paths, top_k_relevant_image_scores)]
+            fig = draw_retrieval_results(query, top_k_relevant_results, figsize=(20,6))
+            self.logger.write_image(query, fig, step=self.epoch)
         
        
     def logging(self, logs, step):
