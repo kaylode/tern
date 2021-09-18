@@ -223,28 +223,21 @@ class Trainer():
         retrieval_results = np.load('./results/query_results.npy', allow_pickle=True)
         
         batch = next(iter(self.valloader))
-        image_ids = batch['image_ids']
+        query_ids = batch['ann_ids']
 
-        query_pool = self.cfg.val_imgs
-        gallery_pool = self.cfg.train_imgs
-
-        for idx, image_id in enumerate(image_ids):
+        for idx, query_id in enumerate(query_ids):
             
-            gallery_image_ids = retrieval_results.item()[image_id]
+            gallery_ids = retrieval_results.item()[query_id]
             
-            top_k_relevant_image_scores = gallery_image_ids['scores'][:5]
-            top_k_relevant_image_ids = gallery_image_ids['image_ids'][:5]
+            top_k_relevant_image_scores = gallery_ids['scores'][:5]
+            top_k_relevant_image_ids = gallery_ids['image_ids'][:5]
 
-            top_k_relevant_posts = df[df.posting_id.isin(top_k_relevant_image_ids)]
-            top_k_relevant_posts = [
-                (os.path.join(gallery_pool,image_name), title) for (image_name, title) in zip(
-                    top_k_relevant_posts['image'], 
-                    top_k_relevant_posts['cleaned_title'])
-            ]
-      
-            image_outname = os.path.join('samples', f'{self.epoch}_{self.iters}_{idx}.jpg')
-            fig = draw_retrieval_results(queries, top_k_relevant_posts, image_outname)
-            self.logger.write_image('samples', fig)
+            top_k_relevant_image_paths = self.valloader.dataset.load_image_by_id(top_k_relevant_image_ids)
+            query = self.valloader.dataset.load_annotations_by_id(query_id)[0]
+
+            top_k_relevant_results = zip(top_k_relevant_image_paths, top_k_relevant_image_scores)
+            fig = draw_retrieval_results(query, top_k_relevant_results, figsize=(20,20))
+            self.logger.write_image(query, fig)
         
        
     def logging(self, logs, step):
