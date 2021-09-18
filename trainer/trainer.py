@@ -215,6 +215,7 @@ class Trainer():
         
     def visualize_batch(self):
         from utils.utils import draw_retrieval_results
+        import random
         # Vizualize Grad Class Activation Mapping
         if not os.path.exists('./samples'):
             os.mkdir('./samples')
@@ -222,8 +223,8 @@ class Trainer():
         # Retrieval dict {post_id: {'post_ids': [], 'scores': []}
         retrieval_results = np.load('./results/query_results.npy', allow_pickle=True)
         
-        batch = next(iter(self.valloader))
-        query_ids = batch['ann_ids']
+        query_ids = retrieval_results.item().keys()
+        query_ids = random.choices(query_ids, k=64)
 
         for idx, query_id in enumerate(query_ids):
             
