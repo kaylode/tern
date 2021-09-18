@@ -35,8 +35,8 @@ class Captioning(BaseModel):
 
         loss = self.criterion(outputs_l, outputs_v)
 
-        loss_dict = {'T': loss.item()}
-        return loss, loss_dict
+        loss_dict = {k:v.item() for k,v in loss.items()}
+        return loss['T'], loss_dict
 
     def inference_step(self, batch):
         
@@ -64,8 +64,8 @@ class Captioning(BaseModel):
 
         loss = self.criterion(outputs_l, outputs_v)
 
-        loss_dict = {'T': loss.item()}
+        loss_dict = {k:v.item() for k,v in loss.items()}
 
         self.update_metrics(model=self)
-        return loss, loss_dict
+        return loss['T'], loss_dict
 

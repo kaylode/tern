@@ -27,7 +27,7 @@ def train(args, config):
 
     optimizer, optimizer_params = get_lr_policy(config.lr_policy)
 
-    criterion = ContrastiveLoss(margin=0.2, measure='dot', max_violation=True)
+    criterion = NTXentLoss() #ContrastiveLoss(margin=0.2, measure='dot', max_violation=True)
 
     metric = RetrievalScore(
             valset, valset, 
