@@ -169,7 +169,7 @@ class RetrievalScore():
 
     def compute_queries(self):
         for idx, batch in enumerate(tqdm(self.queries_loader)):
-            post_ids = batch['image_ids']
+            post_ids = batch['ann_ids']
             target_ids = batch['image_ids']
             img_feats, txt_feats = self.model.inference_step(batch)
          
@@ -227,10 +227,10 @@ class RetrievalScore():
                 max_distance=self.max_distance
             )
 
-            current_post_id = self.queries_post_ids[idx]
-            target_post_ids = self.targets_post_ids[idx]
+            current_post_id = self.queries_post_ids[idx] # query caption id
+            target_post_ids = self.targets_post_ids[idx] # target image id
 
-            pred_post_ids = self.gallery_post_ids[top_k_indexes]
+            pred_post_ids = self.gallery_post_ids[top_k_indexes] # gallery image id
             pred_post_ids = pred_post_ids.tolist()
 
             if self.save_results:
