@@ -221,7 +221,7 @@ class Trainer():
         retrieval_results = np.load('./results/query_results.npy', allow_pickle=True)
         
         query_ids = list(retrieval_results.item().keys())
-        query_ids = random.choices(query_ids, k=64)
+        query_ids = random.choices(query_ids, k=32)
 
         for idx, query_id in enumerate(query_ids):
             query_id = int(query_id)
