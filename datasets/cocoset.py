@@ -50,24 +50,24 @@ class CocoDataset(Dataset):
 
     def load_annotations(self, image_index, return_all=False):
         # get ground truth annotations
-        annotations_ids = self.coco.getAnnIds(imgIds=self.image_ids[image_index])
+        ann_id = self.coco.getAnnIds(imgIds=self.image_ids[image_index])
 
         if not return_all:
-            if len(annotations_ids)>1:
-                ann_id = random.choice(annotations_ids)
+            ann_id = random.choice(ann_id)
             anns = self.coco.loadAnns(ann_id)[0]['caption']
         else:
-            anns = self.coco.loadAnns(annotations_ids)
+            anns = self.coco.loadAnns(ann_id)
             anns = [i['caption'] for i in anns]
-        return anns
+        return anns, ann_id
 
     def __getitem__(self, index):
         image_id = self.image_ids[index]
         image_path = self.load_image(index)
-        text = self.load_annotations(index)
+        text, ann_id = self.load_annotations(index)
 
         return {
             'image_id': image_id,
+            'ann_id': ann_id,
             'image_path': image_path,
             'text': text,
         }
@@ -84,6 +84,7 @@ class CocoDataset(Dataset):
         
         image_paths = [s['image_path'] for s in batch]
         image_ids = [s['image_id'] for s in batch]
+        ann_ids = [s['ann_id'] for s in batch]
         
         image_names = []
         ori_imgs = []
@@ -119,6 +120,7 @@ class CocoDataset(Dataset):
 
         return {
             'image_ids': image_ids,
+            'ann_ids': ann_ids,
             'image_names': image_names,
             'ori_imgs': ori_imgs,
             'image_patches': feats,
@@ -233,6 +235,16 @@ class NumpyFeatureDataset(Dataset):
         image_path = os.path.join(self.root_dir, image_info['file_name'])
         return image_path
 
+    def load_image_by_id(self, image_id):
+        image_infos = self.coco.loadImgs(image_id)
+        image_path = [os.path.join(self.root_dir, i['file_name']) for i in image_infos]
+        return image_path
+
+    def load_annotations_by_id(self, ann_id):
+        anns = self.coco.loadAnns(ann_id)
+        anns = [i['caption'] for i in anns]
+        return anns
+
     def load_numpy(self, image_index):
         image_info = self.coco.loadImgs(self.image_ids[image_index])[0]
         npy_path = os.path.join(self.feat_dir, 'data_att', image_info['file_name'][:-4]+'.npz')
@@ -241,26 +253,27 @@ class NumpyFeatureDataset(Dataset):
 
     def load_annotations(self, image_index, return_all=False):
         # get ground truth annotations
-        annotations_ids = self.coco.getAnnIds(imgIds=self.image_ids[image_index])
+        ann_id = self.coco.getAnnIds(imgIds=self.image_ids[image_index])
 
         if not return_all:
-            ann_id = random.choice(annotations_ids)
+            ann_id = random.choice(ann_id)
             anns = self.coco.loadAnns(ann_id)[0]['caption']
             language_path = os.path.join(self.text_dir, f"{ann_id}.npz")
-            return anns, language_path
+            return anns, language_path, ann_id
         else:
-            anns = self.coco.loadAnns(annotations_ids)
+            anns = self.coco.loadAnns(ann_id)
             anns = [i['caption'] for i in anns]
-            return anns
+            return anns, ann_id
 
     def __getitem__(self, index):
         image_id = self.image_ids[index]
         image_path = self.load_image(index)
         npy_path, npy_loc_path = self.load_numpy(index)
-        text, language_path = self.load_annotations(index)
+        text, language_path, ann_id = self.load_annotations(index)
 
         return {
             'image_id': image_id,
+            'ann_id': ann_id,
             'npy_path': npy_path,
             'language_path': language_path,
             "npy_loc_path": npy_loc_path,
@@ -275,6 +288,7 @@ class NumpyFeatureDataset(Dataset):
         npy_loc_paths = [s['npy_loc_path'] for s in batch]
         language_paths = [s['language_path'] for s in batch]
         image_ids = [s['image_id'] for s in batch]
+        ann_ids = [s['ann_id'] for s in batch]
         texts = [s['text'] for s in batch]
         
         image_names = []
@@ -309,6 +323,7 @@ class NumpyFeatureDataset(Dataset):
 
         return {
             'image_ids': image_ids,
+            'ann_ids': ann_ids,
             'image_names': image_names,
             'ori_imgs': ori_imgs,
             'feats': feats,
