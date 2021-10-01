@@ -32,13 +32,19 @@ class TERN(nn.Module):
         init_xavier(self)
 
     def forward(self, visual_inputs, spatial_inputs, lang_inputs):
-        outputs_v = self.encoder_v(visual_inputs, spatial_inputs) #[B x 37 x d_model] (append CLS token to first)
-        outputs_l = self.encoder_l(lang_inputs) #[B x Length+2 x d_model] (plus 2 special tokens)
-
-        feats_v = self.img_proj(outputs_v).mean(dim=1)
-        feats_l = self.cap_proj(outputs_l).mean(dim=1)
-
-        feats_l = l2norm(feats_l)
-        feats_v = l2norm(feats_v)
+        feats_v = self.visual_forward(visual_inputs, spatial_inputs)
+        feats_l = self.lang_forward(lang_inputs)
 
         return feats_l, feats_v
+
+    def visual_forward(self, visual_inputs, spatial_inputs):
+        outputs_v = self.encoder_v(visual_inputs, spatial_inputs) #[B x 37 x d_model] (append CLS token to first)
+        feats_v = self.img_proj(outputs_v).mean(dim=1)
+        feats_v = l2norm(feats_v)
+        return feats_v
+
+    def lang_forward(self, lang_inputs):
+        outputs_l = self.encoder_l(lang_inputs) #[B x Length+2 x d_model] (plus 2 special tokens)
+        feats_l = self.cap_proj(outputs_l).mean(dim=1)
+        feats_l = l2norm(feats_l)
+        return feats_l
