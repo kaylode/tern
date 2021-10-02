@@ -9,3 +9,4 @@ pycocotools
 gdown==3.13.0
 transformers
 nlpaug
+pytorch-metric-learning
