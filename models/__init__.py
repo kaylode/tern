@@ -1,7 +1,7 @@
 import torch.nn as nn
 from models.encoder import EncoderBottomUp, EncoderBERT, TransformerEncoder, ModalProjection
 from models.transformer import init_xavier, l2norm
-from .captioning import Captioning
+from .retriever import Retriever
 
 class TERN(nn.Module):
     """

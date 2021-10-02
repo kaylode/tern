@@ -1,11 +1,12 @@
+import torch
 from .base_model import BaseModel
 
 import sys
 sys.path.append('..')
 
-class Captioning(BaseModel):
+class Retriever(BaseModel):
     def __init__(self, model, **kwargs):
-        super(Captioning, self).__init__(**kwargs)
+        super(Retriever, self).__init__(**kwargs)
         self.model = model
         self.model_name = self.model.name
         if self.optimizer is not None:

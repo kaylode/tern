@@ -27,7 +27,7 @@ def train(args, config):
 
     optimizer, optimizer_params = get_lr_policy(config.lr_policy)
 
-    criterion = NTXentLoss() #ContrastiveLoss(margin=0.2, measure='dot', max_violation=True)
+    criterion = get_loss_fn(config.loss)
 
     metric = RetrievalScore(
             valset, valset, 
@@ -35,7 +35,7 @@ def train(args, config):
             top_k=10,
             save_results=True)
 
-    model = Captioning(
+    model = Retriever(
             model = net,
             metrics = metric,
             criterion=criterion,
