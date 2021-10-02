@@ -27,7 +27,7 @@ def train(args, config):
             top_k=args.top_k,
             save_results=True)
 
-    model = Captioning(model = net, device=device)
+    model = Retriever(model = net, device=device)
   
     if args.weight is not None:                
         load_checkpoint(model, args.weight)
