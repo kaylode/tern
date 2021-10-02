@@ -18,6 +18,16 @@ settings:
   batch_size: 128
   num_workers: 2
 
+  loss:
+    name: "contrastive"
+    distance: 
+      name: "cosine"
+    reducer:
+      name: "threshold"
+      high: 0.2
+    regularizer:
+      name: "l2"
+      
   # learning rate policy
   lr_policy:
     name: "adam"                         #[adam|sgd]
