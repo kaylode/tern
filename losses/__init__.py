@@ -3,8 +3,8 @@ from .nt_xent_loss import NTXentLoss
 
 from pytorch_metric_learning import losses 
 from pytorch_metric_learning.distances import CosineSimilarity, DotProductSimilarity, LpDistance
-from pytorch_metric_learning.reducers import ThresholdReducer
-from pytorch_metric_learning.regularizers import LpRegularizer, MeanReducer
+from pytorch_metric_learning.reducers import ThresholdReducer, MeanReducer
+from pytorch_metric_learning.regularizers import LpRegularizer
 
 def get_distance(name):
     if name == 'cosine':
@@ -39,9 +39,16 @@ def get_loss_fn(config):
     https://github.com/KevinMusgrave/pytorch-metric-learning
     """
 
-    distance = get_distance(config['distance']['name'], **config['distance'])
-    reducer = get_reducer(config['reducer']['name'], **config['reducer'])
-    regularizer = get_regularizer(config['regularizer']['name'], **config['regularizer'])
+    kwargs = {}
+    if 'distance' in config.keys():
+        kwargs['distance'] = get_distance(**config['distance'])
+    
+    if 'reducer' in config.keys():
+        kwargs['reducer'] = get_reducer(**config['reducer'])
+
+    if 'regularizer' in config.keys():
+        kwargs['regularizer'] = get_regularizer(**config['regularizer'])
+
 
     loss_fn = None
     if config['name'] == 'triplet':
@@ -60,10 +67,7 @@ def get_loss_fn(config):
     if loss_fn is None:
         raise ValueError("Loss function not exists")
 
-    loss_fn = loss_fn(
-        distance = distance, 
-        reducer = reducer, 
-        embedding_regularizer = regularizer)
+    loss_fn = loss_fn(**kwargs)
 
     def loss_function(feats1, feats2):
         # Because using loss function from 
@@ -77,5 +81,3 @@ def get_loss_fn(config):
         return {'T': loss}
     
     return loss_function
-
-
