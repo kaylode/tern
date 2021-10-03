@@ -86,6 +86,13 @@ def mean_average_precision(target_labels, retrieved_labels):
             score += num_hits / (i+1.0)
     return score
 
+def recall_at_k(target_labels, retrieved_labels, k=10):
+    retrieved_labels = retrieved_labels[:k]
+    n_targets = len(target_labels) # Number of corrects
+    n_relevant_objs = len(np.intersect1d(target_labels,retrieved_labels))
+    score = n_relevant_objs*1.0 / n_targets
+    return score
+
 def dice_score(target_labels, retrieved_labels):
     # F1 score: https://www.kaggle.com/cdeotte/part-2-rapids-tfidfvectorizer-cv-0-700?scriptVersionId=0
     n = len(np.intersect1d(target_labels,retrieved_labels)) # Number of corrects
@@ -98,6 +105,7 @@ metrics_mapping = {
     'NN': nearest_neighbor,
     'MAP': mean_average_precision,
     'F1': dice_score,
+    'R@10': recall_at_k,
 }
 
 class RetrievalScore():    
