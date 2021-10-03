@@ -23,7 +23,7 @@ def train(args, config):
     
     trainset, valset, trainloader, valloader = get_dataset_and_dataloader(config)
 
-    net = TERN(1024)
+    net = TERN(config.model)
 
     optimizer, optimizer_params = get_lr_policy(config.lr_policy)
 

@@ -19,7 +19,7 @@ def train(args, config):
     
     _, valset, _, _ = get_dataset_and_dataloader(config)
 
-    net = TERN(1024)
+    net = TERN(config.model)
 
     metric = RetrievalScore(
             valset, valset, 
