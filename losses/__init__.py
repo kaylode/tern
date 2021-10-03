@@ -47,7 +47,7 @@ def get_loss_fn(config):
         kwargs['reducer'] = get_reducer(**config['reducer'])
 
     if 'regularizer' in config.keys():
-        kwargs['regularizer'] = get_regularizer(**config['regularizer'])
+        kwargs['embedding_regularizer'] = get_regularizer(**config['regularizer'])
 
 
     loss_fn = None
