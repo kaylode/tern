@@ -32,8 +32,8 @@ settings:
 
   loss:
     name: "contrastive"                # [contrastive, nxtent, custom_nxtent, triplet]
-    distance: 
-      name: "cosine"                   # [cosine, dot, euclidean]      
+    # distance: 
+    #   name: "cosine"                   # [cosine, dot, euclidean]      
     # reducer:
     #   name: "threshold"
     #   high: 0.2
