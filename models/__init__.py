@@ -17,15 +17,16 @@ class TERN(nn.Module):
     :output:
         next words probability shape [batch * input length * vocab_dim]
     """
-    def __init__(self, embed_dim, precomp_bert=True):
+    def __init__(self, config, precomp_bert=True):
         super(TERN, self).__init__()
-        self.name = "TERN"
+        self.name = config["name"]
+        self.aggregation = config["aggregation"]
 
-        self.encoder_v = EncoderBottomUp(feat_dim=2048, d_model=768, d_ff=2048, N=4, heads=2, dropout=0.1)
-        self.encoder_l = EncoderBERT(precomp=precomp_bert, d_model=768, d_ff=2048, N=4, heads=2, dropout=0.1)
+        self.encoder_v = EncoderBottomUp(feat_dim=2048, d_model=config['d_model'], d_ff=config["d_ff"], N=config["N_v"], heads=config["heads"], dropout=config["dropout"])
+        self.encoder_l = EncoderBERT(precomp=precomp_bert, d_model=config['d_model'], d_ff=config["d_ff"], N=config["N_l"], heads=config["heads"], dropout=config["dropout"])
         
-        self.img_proj = ModalProjection(in_dim=768, out_dim=embed_dim)
-        self.cap_proj = ModalProjection(in_dim=768, out_dim=embed_dim)
+        self.img_proj = ModalProjection(in_dim=config['d_model'], out_dim=config["d_embed"])
+        self.cap_proj = ModalProjection(in_dim=config['d_model'], out_dim=config["d_embed"])
 
         # Shared weight encoders
         # self.transformer_encoder = TransformerEncoder(d_model=1024, d_ff=2048, N=2, heads=4, dropout=0.1)
@@ -39,12 +40,23 @@ class TERN(nn.Module):
 
     def visual_forward(self, visual_inputs, spatial_inputs):
         outputs_v = self.encoder_v(visual_inputs, spatial_inputs) #[B x 37 x d_model] (append CLS token to first)
-        feats_v = self.img_proj(outputs_v).mean(dim=1)
+        
+        if self.aggregation == 'mean':
+            feats_v = self.img_proj(outputs_v)[0]
+        if self.aggregation == 'first':
+            feats_v = self.img_proj(outputs_v)[0]
+
         feats_v = l2norm(feats_v)
         return feats_v
 
     def lang_forward(self, lang_inputs):
         outputs_l = self.encoder_l(lang_inputs) #[B x Length+2 x d_model] (plus 2 special tokens)
-        feats_l = self.cap_proj(outputs_l).mean(dim=1)
+        
+        if self.aggregation == 'mean':
+            feats_l = self.cap_proj(outputs_l).mean(dim=1)
+        
+        if self.aggregation == 'first':
+            feats_l = self.cap_proj(outputs_l)[0]
+
         feats_l = l2norm(feats_l)
         return feats_l

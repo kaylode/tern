@@ -18,14 +18,26 @@ settings:
   batch_size: 128
   num_workers: 2
 
+  model:
+    name: "TERN"
+    d_embed: 1024                      # output_dim
+    d_model: 768                       # model dim
+    d_ff: 2048                         # feed-forward dim
+    aggregation: "mean"               # [mean, first]
+    N_v: 4                             # number of layers
+    N_l: 0                             # number of layers
+    heads: 4                           # number of heads
+    dropout: 0.1
+
+
   loss:
-    name: "contrastive"
+    name: "contrastive"                # [contrastive, nxtent, custom_nxtent, triplet]
     distance: 
-      name: "cosine"
+      name: "cosine"                   # [cosine, dot, euclidean]      
     # reducer:
     #   name: "threshold"
     #   high: 0.2
-    # regularizer:
+    # regularizer:                     # [l1, l2, mean]
     #   name: "l2"
       
   # learning rate policy
