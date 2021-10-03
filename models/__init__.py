@@ -42,9 +42,9 @@ class TERN(nn.Module):
         outputs_v = self.encoder_v(visual_inputs, spatial_inputs) #[B x 37 x d_model] (append CLS token to first)
         
         if self.aggregation == 'mean':
-            feats_v = self.img_proj(outputs_v)[0]
+            feats_v = self.img_proj(outputs_v).mean(dim=1)
         if self.aggregation == 'first':
-            feats_v = self.img_proj(outputs_v)[0]
+            feats_v = self.img_proj(outputs_v)[:, 0]
 
         feats_v = l2norm(feats_v)
         return feats_v
@@ -56,7 +56,7 @@ class TERN(nn.Module):
             feats_l = self.cap_proj(outputs_l).mean(dim=1)
         
         if self.aggregation == 'first':
-            feats_l = self.cap_proj(outputs_l)[0]
+            feats_l = self.cap_proj(outputs_l)[:, 0]
 
         feats_l = l2norm(feats_l)
         return feats_l
