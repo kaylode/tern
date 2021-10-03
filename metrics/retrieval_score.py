@@ -104,6 +104,7 @@ class RetrievalScore():
     def __init__(self, 
             queries_set, 
             gallery_set=None, 
+            dimension=1024,
             metric_names=['FT', "ST", "MAP", "NN", "F1"],
             max_distance = 1.3,
             top_k=10,
@@ -148,7 +149,7 @@ class RetrievalScore():
 
         if USE_FAISS:
             res = faiss.StandardGpuResources()  # use a single GPU
-            self.faiss_pool = faiss.IndexFlatL2(1024)
+            self.faiss_pool = faiss.IndexFlatL2(dimension)
             self.faiss_pool = faiss.index_cpu_to_gpu(res, 0, self.faiss_pool)
 
     def reset(self):

@@ -24,7 +24,8 @@ def train(args, config):
     metric = RetrievalScore(
             valset, valset, 
             max_distance = 1.3,
-            top_k=args.top_k,
+            top_k=10,
+            dimension=config.model['d_embed'],
             save_results=True)
 
     model = Retriever(model = net, device=device)
