@@ -1,6 +1,6 @@
 import torch.nn as nn
 from models.encoder import EncoderBottomUp, EncoderBERT, TransformerEncoder, ModalProjection
-from models.transformer import init_xavier, l2norm
+from models.encoder.utils import init_xavier, l2norm
 from .retriever import Retriever
 
 class TERN(nn.Module):
@@ -22,8 +22,11 @@ class TERN(nn.Module):
         self.name = config["name"]
         self.aggregation = config["aggregation"]
 
-        self.encoder_v = EncoderBottomUp(feat_dim=2048, d_model=config['d_model'], d_ff=config["d_ff"], N=config["N_v"], heads=config["heads"], dropout=config["dropout"])
-        self.encoder_l = EncoderBERT(precomp=precomp_bert, d_model=config['d_model'], d_ff=config["d_ff"], N=config["N_l"], heads=config["heads"], dropout=config["dropout"])
+        self.encoder_v = EncoderBottomUp(feat_dim=2048, d_model=config['d_model'])
+        self.encoder_l = EncoderBERT(precomp=precomp_bert)
+
+        self.transformer_v = TransformerEncoder(d_model=config['d_model'], d_ff=config["d_ff"], N=config["N_v"], heads=config["heads"], dropout=config["dropout"])
+        self.transformer_l = TransformerEncoder(d_model=config['d_model'], d_ff=config["d_ff"], N=config["N_l"], heads=config["heads"], dropout=config["dropout"])
         
         self.img_proj = ModalProjection(in_dim=config['d_model'], out_dim=config["d_embed"])
         self.cap_proj = ModalProjection(in_dim=config['d_model'], out_dim=config["d_embed"])
@@ -39,8 +42,9 @@ class TERN(nn.Module):
         return feats_l, feats_v
 
     def visual_forward(self, visual_inputs, spatial_inputs):
-        outputs_v = self.encoder_v(visual_inputs, spatial_inputs) #[B x 37 x d_model] (append CLS token to first)
-        
+        outputs_v = self.encoder_v(visual_inputs, spatial_inputs) 
+        outputs_v = self.transformer_v(outputs_v)                    #[B x 37 x d_model] (append CLS token to first)
+
         if self.aggregation == 'mean':
             feats_v = self.img_proj(outputs_v).mean(dim=1)
         if self.aggregation == 'first':
@@ -50,8 +54,9 @@ class TERN(nn.Module):
         return feats_v
 
     def lang_forward(self, lang_inputs):
-        outputs_l = self.encoder_l(lang_inputs) #[B x Length+2 x d_model] (plus 2 special tokens)
-        
+        outputs_l = self.encoder_l(lang_inputs) 
+        outputs_l = self.transformer_l(outputs_l) #[B x Length+2 x d_model] (plus 2 special tokens)
+
         if self.aggregation == 'mean':
             feats_l = self.cap_proj(outputs_l).mean(dim=1)
         

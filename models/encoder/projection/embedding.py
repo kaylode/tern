@@ -15,9 +15,9 @@ class PatchEmbedding(nn.Module):
         x = self.proj(x).flatten(2).transpose(1, 2) # BCHW -> BNC
         return x
 
-class Embeddings(nn.Module):
+class WordEmbedding(nn.Module):
     """
-    Word Embeddings after Tokenized
+    Word Embedding after Tokenized
     :input:
         model_dim:    one token embedding shape
         vocab_size:   vocabulary size
@@ -26,7 +26,7 @@ class Embeddings(nn.Module):
         embeddings shape [batch * input length * model_dim]
     """
     def __init__(self, vocab_size, model_dim):
-        super(Embeddings, self).__init__()
+        super(WordEmbedding, self).__init__()
         self.lut = nn.Embedding(vocab_size, model_dim)
         self.model_dim = model_dim
 
