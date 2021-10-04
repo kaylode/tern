@@ -113,7 +113,7 @@ class RetrievalScore():
             queries_set, 
             gallery_set=None, 
             dimension=1024,
-            metric_names=['FT', "ST", "MAP", "NN", "F1"],
+            metric_names=['FT', "ST", "MAP", "NN", "F1", "R@10"],
             max_distance = 1.3,
             top_k=10,
             save_results=True):
