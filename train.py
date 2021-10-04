@@ -93,7 +93,7 @@ def train(args, config):
     print(f'Training with {num_gpus} gpu(s): ')
     print(devices_info)
     print(f"Start training at [{start_epoch}|{start_iter}]")
-    print(f"Current best MAP: {best_value}")
+    print(f"Current best R@10: {best_value}")
 
     trainer.fit(start_epoch = start_epoch, start_iter = start_iter, num_epochs=config.num_epochs, print_per_iter=args.print_per_iter)
 
