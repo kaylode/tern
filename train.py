@@ -23,7 +23,7 @@ def train(args, config):
     
     trainset, valset, trainloader, valloader = get_dataset_and_dataloader(config)
 
-    net = TERN(config.model)
+    net = get_cross_modal(config.model)
 
     optimizer, optimizer_params = get_lr_policy(config.lr_policy)
 

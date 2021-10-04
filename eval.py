@@ -19,7 +19,7 @@ def train(args, config):
     
     _, valset, _, _ = get_dataset_and_dataloader(config)
 
-    net = TERN(config.model)
+    net = get_cross_modal(config.model)
 
     metric = RetrievalScore(
             valset, valset, 
