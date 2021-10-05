@@ -9,7 +9,6 @@ settings:
       feat_dir: "/content/data/bottom_up"
       text_dir: "/content/data/bert_features"
       batch_size: 128
-      num_workers: 2
 
   valloader:
     name: RawNumpyFeatureLoader

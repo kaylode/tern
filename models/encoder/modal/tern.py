@@ -7,7 +7,7 @@ class TERN(CrossModal):
     """
     Architecture idea based on Transformer Encoder Reasoning Network
     """
-    def __init__(self, d_model, d_embed, d_ff, N_v, N_l, heads, dropout, aggregation, precomp_bert):
+    def __init__(self, d_model, d_embed, d_ff, N_v, N_l, heads, dropout, aggregation, precomp_bert, **kwargs):
         super(TERN, self).__init__()
         self.name = "TERN"
         self.aggregation = aggregation

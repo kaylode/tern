@@ -28,7 +28,7 @@ def train(args, config):
     trainset = trainloader.dataset
     valset = valloader.dataset
 
-    net = get_instance(config.model)
+    net = get_instance(config.model, device=device)
 
     optimizer, optimizer_params = get_lr_policy(config.lr_policy)
 
@@ -38,7 +38,7 @@ def train(args, config):
             valset, valset, 
             max_distance = 1.3,
             top_k=10,
-            dimension=config.model['d_embed'],
+            dimension=config.model['args']['d_embed'],
             save_results=True)
 
     model = Retriever(

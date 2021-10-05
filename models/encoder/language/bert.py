@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
-
+from datasets.utils import make_feature_batch
+import numpy as np
 from transformers import AutoTokenizer, AutoModel, pipeline
 
 class EncoderBERT(nn.Module):
@@ -12,7 +13,7 @@ class EncoderBERT(nn.Module):
         encoded embeddings shape [batch * input length * model_dim]
     """
 
-    def __init__(self, version='distilbert-base-uncased', precomp=True):
+    def __init__(self, version='distilbert-base-uncased', precomp=True, device=None):
         super().__init__()
 
         self.precomp = precomp
@@ -27,12 +28,17 @@ class EncoderBERT(nn.Module):
                 'feature-extraction', 
                 model=model, 
                 tokenizer=tokenizer, 
-                device = 0)
-        
+                device = 0 if device is not None else -1)
 
+            self.device = device
+            
     def forward(self, x):
         if not self.precomp:
             with torch.no_grad():
                 x = self.pipeline(x)
+            x = np.squeeze(x)
+            x = [np.array(i) for i in x]
+            x = make_feature_batch(x, pad_token=0)
+            x = x.to(self.device)
 
         return x
