@@ -7,13 +7,13 @@ class ViTR(CrossModal):
     """
     Architecture idea based on Vision Transformer Retrieval
     """
-    def __init__(self, config, precomp_bert=True):
+    def __init__(self, config):
         super(ViTR, self).__init__()
         self.name = config["name"]
         self.aggregation = config["aggregation"]
 
         self.encoder_v = EncoderVIT()
-        self.encoder_l = EncoderBERT(precomp=precomp_bert)
+        self.encoder_l = EncoderBERT(precomp=config['precomp_bert'])
         
         self.img_proj = ModalProjection(in_dim=config['d_model'], out_dim=config["d_embed"])
         self.cap_proj = ModalProjection(in_dim=config['d_model'], out_dim=config["d_embed"])

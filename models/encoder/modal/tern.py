@@ -6,13 +6,13 @@ class TERN(CrossModal):
     """
     Architecture idea based on Transformer Encoder Reasoning Network
     """
-    def __init__(self, config, precomp_bert=True):
+    def __init__(self, config):
         super(TERN, self).__init__()
         self.name = config["name"]
         self.aggregation = config["aggregation"]
 
         self.encoder_v = EncoderBottomUp(feat_dim=2048, d_model=config['d_model'])
-        self.encoder_l = EncoderBERT(precomp=precomp_bert)
+        self.encoder_l = EncoderBERT(precomp=config['precomp_bert'])
 
         self.reasoning_v = TransformerEncoder(d_model=config['d_model'], d_ff=config["d_ff"], N=config["N_v"], heads=config["heads"], dropout=config["dropout"])
         self.reasoning_l = TransformerEncoder(d_model=config['d_model'], d_ff=config["d_ff"], N=config["N_l"], heads=config["heads"], dropout=config["dropout"])

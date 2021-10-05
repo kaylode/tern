@@ -4,7 +4,7 @@ from .vitr import ViTR
 
 def get_cross_modal(config):
     if config['name'] == 'TERN':
-        return TERN(config, precomp_bert=True)
+        return TERN(config)
 
     if config['name'] == 'ViTR':
-        return ViTR(config, precomp_bert=True)
+        return ViTR(config)
