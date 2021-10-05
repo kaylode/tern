@@ -1,4 +1,5 @@
-from models.encoder import EncoderVIT, EncoderBERT, ModalProjection
+from models.encoder import EncoderVIT, EncoderBERT
+from models.encoder.projection import ModalProjection
 from models.encoder.utils import init_xavier, l2norm
 from .base import CrossModal
 import torch.nn as nn
@@ -7,16 +8,16 @@ class ViTR(CrossModal):
     """
     Architecture idea based on Vision Transformer Retrieval
     """
-    def __init__(self, config):
+    def __init__(self, name, d_model, d_embed, aggregation, precomp_bert):
         super(ViTR, self).__init__()
-        self.name = config["name"]
-        self.aggregation = config["aggregation"]
+        self.name = name
+        self.aggregation = aggregation
 
         self.encoder_v = EncoderVIT()
-        self.encoder_l = EncoderBERT(precomp=config['precomp_bert'])
+        self.encoder_l = EncoderBERT(precomp=precomp_bert)
         
-        self.img_proj = ModalProjection(in_dim=config['d_model'], out_dim=config["d_embed"])
-        self.cap_proj = ModalProjection(in_dim=config['d_model'], out_dim=config["d_embed"])
+        self.img_proj = ModalProjection(in_dim=d_model, out_dim=d_embed)
+        self.cap_proj = ModalProjection(in_dim=d_model, out_dim=d_embed)
 
         # Shared weight encoders
         # self.transformer_encoder = TransformerEncoder(d_model=1024, d_ff=2048, N=2, heads=4, dropout=0.1)

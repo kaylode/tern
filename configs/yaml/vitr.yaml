@@ -10,7 +10,6 @@ settings:
       keep_ratio: False
       type: "train"
       batch_size: 128
-      num_workers: 2
 
   valloader:
     name: RawCocoLoader
