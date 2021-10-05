@@ -3,23 +3,25 @@ settings:
 
   trainloader:
     name: CocoLoader
-    root_dir: "/content/data/flickr30k_images/flickr30k_images"
-    ann_path: "/content/data/train.json"
-    image_size: 224
-    keep_ratio: False
-    type: "train"
-    batch_size: 128
-    num_workers: 2
+    args:
+      root_dir: "/content/data/flickr30k_images/flickr30k_images"
+      ann_path: "/content/data/train.json"
+      image_size: 224
+      keep_ratio: False
+      type: "train"
+      batch_size: 128
+      num_workers: 2
 
   valloader:
     name: RawCocoLoader
-    root_dir: "/content/data/flickr30k_images/flickr30k_images"
-    ann_path: "/content/data/val.json"
-    image_size: 224
-    keep_ratio: False
-    type: "val"
-    batch_size: 128
-    num_workers: 2
+    args:
+      root_dir: "/content/data/flickr30k_images/flickr30k_images"
+      ann_path: "/content/data/val.json"
+      image_size: 224
+      keep_ratio: False
+      type: "val"
+      batch_size: 128
+      num_workers: 2
 
   #################   TRAINING CONFIG   ###################
 
@@ -28,10 +30,11 @@ settings:
 
   model:
     name: "ViTR"
-    d_embed: 1024                      # output_dim
-    d_model: 768                       # model dim
-    aggregation: "mean"               # [mean, first]
-    precomp_bert: False
+    args:
+      d_embed: 1024                      # output_dim
+      d_model: 768                       # model dim
+      aggregation: "mean"               # [mean, first]
+      precomp_bert: False
 
 
   loss:

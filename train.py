@@ -21,10 +21,13 @@ def train(args, config):
     device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
     devices_info = get_devices_info(config.gpu_devices)
     
-    trainset, trainloader = get_loader(config.trainloader)
-    valset, valloader = get_loader(config.valloader) 
+    trainloader = get_instance(config.trainloader)
+    valloader = get_instance(config.valloader) 
 
-    net = get_cross_modal(config.model)
+    trainset = trainloader.dataset
+    valset = valloader.dataset
+
+    net = get_instance(config.model)
 
     optimizer, optimizer_params = get_lr_policy(config.lr_policy)
 

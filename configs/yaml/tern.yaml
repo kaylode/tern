@@ -3,21 +3,23 @@ settings:
 
   trainloader:
     name: NumpyFeatureLoader
-    root_dir: "/content/data/flickr30k_images/flickr30k_images"
-    ann_path: "/content/data/train.json"
-    feat_dir: "/content/data/bottom_up"
-    text_dir: "/content/data/bert_features"
-    batch_size: 128
-    num_workers: 2
+    args:
+      root_dir: "/content/data/flickr30k_images/flickr30k_images"
+      ann_path: "/content/data/train.json"
+      feat_dir: "/content/data/bottom_up"
+      text_dir: "/content/data/bert_features"
+      batch_size: 128
+      num_workers: 2
 
   valloader:
     name: RawNumpyFeatureLoader
-    root_dir: "/content/data/flickr30k_images/flickr30k_images"
-    ann_path: "/content/data/val.json"
-    feat_dir: "/content/data/bottom_up"
-    text_dir: "/content/data/bert_features"
-    batch_size: 128
-    num_workers: 2
+    args:
+      root_dir: "/content/data/flickr30k_images/flickr30k_images"
+      ann_path: "/content/data/val.json"
+      feat_dir: "/content/data/bottom_up"
+      text_dir: "/content/data/bert_features"
+      batch_size: 128
+      num_workers: 2
 
   #################   TRAINING CONFIG   ###################
 
@@ -26,15 +28,16 @@ settings:
 
   model:
     name: "TERN"
-    d_embed: 1024                      # output_dim
-    d_model: 768                       # model dim
-    d_ff: 2048                         # feed-forward dim
-    aggregation: "mean"               # [mean, first]
-    N_v: 4                             # number of layers
-    N_l: 0                             # number of layers
-    heads: 4                           # number of heads
-    dropout: 0.1
-    precomp_bert: True
+    args:
+      d_embed: 1024                      # output_dim
+      d_model: 768                       # model dim
+      d_ff: 2048                         # feed-forward dim
+      aggregation: "mean"               # [mean, first]
+      N_v: 4                             # number of layers
+      N_l: 0                             # number of layers
+      heads: 4                           # number of heads
+      dropout: 0.1
+      precomp_bert: True
 
 
   loss:
