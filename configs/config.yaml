@@ -1,22 +1,28 @@
 settings:
   #################   DATASET CONFIG   ###################
 
-  project_name: "retrieval"    # also the folder name of the dataset that under ./data folder
-  train_imgs: "/content/data/flickr30k_images/flickr30k_images"
-  val_imgs: "/content/data/flickr30k_images/flickr30k_images"
-  train_anns: "/content/data/train.json"
-  val_anns: "/content/data/val.json"
-  feat_dir: "/content/data/bottom_up"
-  text_dir: "/content/data/bert_features"
+  trainloader:
+    name: NumpyFeatureLoader
+    root_dir: "/content/data/flickr30k_images/flickr30k_images"
+    ann_path: "/content/data/train.json"
+    feat_dir: "/content/data/bottom_up"
+    text_dir: "/content/data/bert_features"
+    batch_size: 128
+    num_workers: 2
+
+  valloader:
+    name: RawNumpyFeatureLoader
+    root_dir: "/content/data/flickr30k_images/flickr30k_images"
+    ann_path: "/content/data/val.json"
+    feat_dir: "/content/data/bottom_up"
+    text_dir: "/content/data/bert_features"
+    batch_size: 128
+    num_workers: 2
 
   #################   TRAINING CONFIG   ###################
-  
-  text_extractor: 'distilbert-base-uncased'
 
   gpu_devices: '0'                     # supports multi-gpus
   num_epochs: 100
-  batch_size: 128
-  num_workers: 2
 
   model:
     name: "TERN"
@@ -55,5 +61,3 @@ settings:
   mixed_precision: False                # whether to use nvidia apex
   total_accumulate_steps: 0           # step * batch_size, not use if equal 0
 
-  # Test time augmentation
-  tta: False                             # whether to use TTA while validation

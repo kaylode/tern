@@ -97,25 +97,15 @@ class CocoDataset(Dataset):
             imgs.append(image)
             ori_imgs.append(ori_img)
         feats = torch.stack(imgs)
-        mask_shapes = int((self.image_size[0] / self.patch_size) **2)
-        image_masks = torch.ones((feats.shape[0], mask_shapes))
 
         texts = [s['text'] for s in batch]
         
         tokens = self.tokenizer(texts, truncation=True)
         tokens = [np.array(i) for i in tokens['input_ids']]
 
-        texts_ = make_feature_batch(
+        texts_inp = make_feature_batch(
             tokens, pad_token=self.tokenizer.pad_token_id)
-        
-        texts_inp = texts_[:, :-1]
-        texts_res = texts_[:, 1:]
-
-        text_masks = create_masks(
-            texts_inp,
-            pad_token=self.tokenizer.pad_token_id, 
-            is_tgt_masking=True)
-        
+                
         texts_inp = texts_inp.squeeze(-1)
 
         return {
@@ -123,12 +113,9 @@ class CocoDataset(Dataset):
             'ann_ids': ann_ids,
             'image_names': image_names,
             'ori_imgs': ori_imgs,
-            'image_patches': feats,
-            'image_masks': image_masks.long(),
+            'imgs': feats,
             'tgt_texts_raw': texts,
-            'texts_inp': texts_inp.long(),
-            'texts_res': texts_res.long(),
-            'text_masks': text_masks.long(),
+            'texts': texts_inp.long(),
         }
 
 

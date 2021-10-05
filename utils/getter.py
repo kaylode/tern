@@ -1,4 +1,4 @@
-from datasets.dataloader import NumpyFeatureLoader, RawNumpyFeatureLoader
+from datasets import *
 from metrics import *
 from datasets import *
 from models import *
@@ -121,29 +121,6 @@ def get_lr_scheduler(optimizer, lr_config, **kwargs):
         step_per_epoch = False
         
     return scheduler, step_per_epoch
-
-
-def get_dataset_and_dataloader(config):
-
-    device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
-    
-    
-    trainloader = NumpyFeatureLoader(
-        batch_size=config.batch_size,
-        root_dir=config.train_imgs,
-        ann_path=config.train_anns, 
-        feat_dir=config.feat_dir, 
-        text_dir=config.text_dir,
-        device=device)
-
-    valloader = RawNumpyFeatureLoader(
-        batch_size=config.batch_size,
-        root_dir=config.val_imgs,
-        ann_path=config.val_anns, 
-        feat_dir=config.feat_dir, 
-        text_dir=config.text_dir)
-
-    return  trainloader.dataset, valloader.dataset, trainloader, valloader
 
 import torch
 import numpy as np
