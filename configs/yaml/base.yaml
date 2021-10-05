@@ -1,0 +1,32 @@
+settings:
+  #################   DATASET CONFIG   ###################
+
+  trainloader:
+    name: None
+    args: None
+
+  valloader:
+    name: None
+    args: None
+
+  #################   TRAINING CONFIG   ###################
+  
+  globals:
+    gpu_devices: '0'                     # supports multi-gpus
+  
+  model:
+    name: "Base"
+    args: None
+
+
+  loss:
+    name: "BaseLoss"                # [contrastive, nxtent, custom_nxtent, triplet]
+      
+  # learning rate policy
+  lr_policy:
+    name: "BaseLR"
+
+  lr_scheduler:
+    name: "BaseScheduler"                      #[plateau | cosine | 1cycle-yolo | 1cycle]
+                                        # if need to specify more scheduler arguments, do it here
+

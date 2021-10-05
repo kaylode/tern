@@ -39,7 +39,7 @@ def config_from_dict(_dict, ignore_keys=[]):
     """
     Load config from dict
     """
-    config = Config('./configs/config.yaml')
+    config = Config('./configs/yaml/base.yaml')
     for k,v in _dict.items():
         if k not in ignore_keys:
             config.__setattr__(k,v)
