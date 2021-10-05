@@ -25,8 +25,11 @@ settings:
 
   #################   TRAINING CONFIG   ###################
 
-  gpu_devices: '0'                     # supports multi-gpus
-  num_epochs: 100
+  globals:
+    gpu_devices: '0'                     # supports multi-gpus
+    num_epochs: 100
+    mixed_precision: False                # whether to use nvidia apex
+    total_accumulate_steps: 0           # step * batch_size, not use if equal 0, gradient accumulation
 
   model:
     name: "ViTR"
@@ -57,8 +60,3 @@ settings:
   lr_scheduler:
     name: "cosine2"                      #[plateau | cosine | 1cycle-yolo | 1cycle]
                                         # if need to specify more scheduler arguments, do it here
-
-  # gradient accumulation
-  mixed_precision: False                # whether to use nvidia apex
-  total_accumulate_steps: 0           # step * batch_size, not use if equal 0
-
