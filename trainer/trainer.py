@@ -247,13 +247,13 @@ class Trainer():
 
     def set_accumulate_step(self):
         self.use_accumulate = False
-        if self.cfg.total_accumulate_steps > 0:
+        if self.cfg.globals['total_accumulate_steps'] > 0:
             self.use_accumulate = True
-            self.accumulate_steps = max(round(self.cfg.total_accumulate_steps / self.cfg.batch_size), 1) 
+            self.accumulate_steps = max(round(self.cfg.globals['total_accumulate_steps'] / self.cfg.valloader['args']['batch_size']), 1) 
 
     def set_amp(self):
         self.use_amp = False
-        if self.cfg.mixed_precision:
+        if self.cfg.globals['mixed_precision']:
             self.use_amp = True
   
     def __str__(self):

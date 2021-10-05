@@ -2,6 +2,7 @@ from utils.getter import *
 import argparse
 
 parser = argparse.ArgumentParser('Training Object Detection')
+parser.add_argument('--config', type=str, help='Path to config file')
 parser.add_argument('--print_per_iter', type=int, default=300, help='Number of iteration to print')
 parser.add_argument('--val_interval', type=int, default=2, help='Number of epoches between valing phases')
 parser.add_argument('--save_interval', type=int, default=1000, help='Number of steps between saving')
@@ -15,11 +16,11 @@ torch.backends.cudnn.fastest = True
 seed_everything()
 
 def train(args, config):
-    os.environ['CUDA_VISIBLE_DEVICES'] = config.gpu_devices
-    num_gpus = len(config.gpu_devices.split(','))
+    os.environ['CUDA_VISIBLE_DEVICES'] = config.globals['gpu_devices']
+    num_gpus = len(config.globals['gpu_devices'].split(','))
 
     device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
-    devices_info = get_devices_info(config.gpu_devices)
+    devices_info = get_devices_info(config.globals['gpu_devices'])
     
     trainloader = get_instance(config.trainloader)
     valloader = get_instance(config.valloader) 
@@ -62,7 +63,7 @@ def train(args, config):
     scheduler, step_per_epoch = get_lr_scheduler(
         model.optimizer, train_len=len(trainloader),
         lr_config=config.lr_scheduler,
-        num_epochs=config.num_epochs)
+        num_epochs=config.globals['num_epochs'])
 
     if args.resume is not None:                 
         old_log = find_old_log(args.resume)
@@ -99,13 +100,13 @@ def train(args, config):
     print(f"Start training at [{start_epoch}|{start_iter}]")
     print(f"Current best R@10: {best_value}")
 
-    trainer.fit(start_epoch = start_epoch, start_iter = start_iter, num_epochs=config.num_epochs, print_per_iter=args.print_per_iter)
+    trainer.fit(start_epoch = start_epoch, start_iter = start_iter, num_epochs=config.globals['num_epochs'], print_per_iter=args.print_per_iter)
 
     
 
 if __name__ == '__main__':
     
     args = parser.parse_args()
-    config = Config(os.path.join('configs','config.yaml'))
+    config = Config(os.path.join('configs/yaml',f'{args.config}'))
 
     train(args, config)
