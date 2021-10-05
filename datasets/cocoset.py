@@ -22,18 +22,17 @@ class CocoDataset(Dataset):
     """
     def __init__(self, 
             root_dir, ann_path, 
-            tokenizer, image_size=[512,512], 
+            image_size=224, 
             keep_ratio=False,
             type='train'):
 
         self.patch_size = 16
         self.root_dir = root_dir
         self.ann_path = ann_path
-        self.image_size = image_size
+        self.image_size = [image_size, image_size]
 
-        self.tokenizer = tokenizer
         self.transforms = A.Compose([
-            get_resize_augmentation(image_size, keep_ratio=keep_ratio),
+            get_resize_augmentation(self.image_size, keep_ratio=keep_ratio),
             get_augmentation(_type=type)
         ])
 
@@ -99,14 +98,6 @@ class CocoDataset(Dataset):
         feats = torch.stack(imgs)
 
         texts = [s['text'] for s in batch]
-        
-        tokens = self.tokenizer(texts, truncation=True)
-        tokens = [np.array(i) for i in tokens['input_ids']]
-
-        texts_inp = make_feature_batch(
-            tokens, pad_token=self.tokenizer.pad_token_id)
-                
-        texts_inp = texts_inp.squeeze(-1)
 
         return {
             'image_ids': image_ids,
@@ -115,7 +106,7 @@ class CocoDataset(Dataset):
             'ori_imgs': ori_imgs,
             'imgs': feats,
             'tgt_texts_raw': texts,
-            'texts': texts_inp.long(),
+            'texts': texts,
         }
 
 
