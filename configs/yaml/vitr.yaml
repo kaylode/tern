@@ -9,7 +9,7 @@ settings:
       image_size: 224
       keep_ratio: False
       type: "train"
-      batch_size: 128
+      batch_size: 32
 
   valloader:
     name: RawCocoLoader
@@ -19,7 +19,7 @@ settings:
       image_size: 224
       keep_ratio: False
       type: "val"
-      batch_size: 128
+      batch_size: 32
       num_workers: 2
 
   #################   TRAINING CONFIG   ###################
