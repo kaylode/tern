@@ -2,6 +2,7 @@ from utils.getter import *
 import argparse
 
 parser = argparse.ArgumentParser('Training Object Detection')
+parser.add_argument('--config', type=str, default=None, help='Path to config file')
 parser.add_argument('--top_k', type=int, default=10, help='Retrieve top k results')
 parser.add_argument('--weight', type=str, default=None,
                     help='whether to load weights from a checkpoint, set None to initialize')
@@ -11,21 +12,22 @@ torch.backends.cudnn.fastest = True
 seed_everything()
 
 def train(args, config):
-    os.environ['CUDA_VISIBLE_DEVICES'] = config.gpu_devices
-    num_gpus = len(config.gpu_devices.split(','))
+    os.environ['CUDA_VISIBLE_DEVICES'] = config.globals['gpu_devices']
+    num_gpus = len(config.globals['gpu_devices'].split(','))
 
     device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
-    devices_info = get_devices_info(config.gpu_devices)
+    devices_info = get_devices_info(config.globals['gpu_devices'])
     
-    _, valset, _, _ = get_dataset_and_dataloader(config)
+    valloader = get_instance(config.valloader)
+    valset = valloader.dataset
 
-    net = get_cross_modal(config.model)
+    net = get_instance(config.model, device=device)
 
     metric = RetrievalScore(
             valset, valset, 
             max_distance = 1.3,
-            top_k=10,
-            dimension=config.model['d_embed'],
+            top_k=args.top_k,
+            dimension=config.model['args']['d_embed'],
             save_results=True)
 
     model = Retriever(model = net, device=device)
@@ -49,6 +51,10 @@ def train(args, config):
 if __name__ == '__main__':
     
     args = parser.parse_args()
-    config = Config(os.path.join('configs','config.yaml'))
+    config = get_config(args.weight)
+    if config is None:
+        config = Config(os.path.join('configs',f'{args.config}'))
+    else:
+        print("Load configs from weight")   
 
     train(args, config)
