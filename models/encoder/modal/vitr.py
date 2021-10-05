@@ -8,9 +8,9 @@ class ViTR(CrossModal):
     """
     Architecture idea based on Vision Transformer Retrieval
     """
-    def __init__(self, name, d_model, d_embed, aggregation, precomp_bert):
+    def __init__(self, d_model, d_embed, aggregation, precomp_bert):
         super(ViTR, self).__init__()
-        self.name = name
+        self.name = "ViTR"
         self.aggregation = aggregation
 
         self.encoder_v = EncoderVIT()
