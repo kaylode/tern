@@ -24,47 +24,18 @@ class Retriever(BaseModel):
         return self.model(x)
 
     def training_step(self, batch):
-        
-        src_inputs = batch['feats'].to(self.device)
-        loc_src_inputs = batch['loc_feats'].to(self.device)
-        lang_src_inputs = batch['lang_feats'].to(self.device)
-
-        outputs_l, outputs_v = self.model(
-            visual_inputs=src_inputs, 
-            spatial_inputs=loc_src_inputs, 
-            lang_inputs=lang_src_inputs)
-
-        loss = self.criterion(outputs_l, outputs_v)
-
+        outputs_1, outputs_2 = self.model.forward_batch(batch, self.device)
+        loss = self.criterion(outputs_1, outputs_2)
         loss_dict = {k:v.item() for k,v in loss.items()}
         return loss['T'], loss_dict
 
     def inference_step(self, batch):
-        
-        src_inputs = batch['feats'].to(self.device)
-        loc_src_inputs = batch['loc_feats'].to(self.device)
-        lang_src_inputs = batch['lang_feats'].to(self.device)
-
-        outputs_l, outputs_v = self.model(
-            visual_inputs=src_inputs, 
-            spatial_inputs=loc_src_inputs, 
-            lang_inputs=lang_src_inputs)
-
-        return outputs_v.cpu().detach().numpy(), outputs_l.cpu().detach().numpy()
+        outputs_1, outputs_2 = self.model.forward_batch(batch, self.device)
+        return outputs_1.cpu().detach().numpy(), outputs_2.cpu().detach().numpy()
 
     def evaluate_step(self, batch):
-
-        src_inputs = batch['feats'].to(self.device)
-        loc_src_inputs = batch['loc_feats'].to(self.device)
-        lang_src_inputs = batch['lang_feats'].to(self.device)
-
-        outputs_l, outputs_v = self.model(
-            visual_inputs=src_inputs, 
-            spatial_inputs=loc_src_inputs, 
-            lang_inputs=lang_src_inputs)
-
-        loss = self.criterion(outputs_l, outputs_v)
-
+        outputs_1, outputs_2 = self.model.forward_batch(batch, self.device)
+        loss = self.criterion(outputs_1, outputs_2)
         loss_dict = {k:v.item() for k,v in loss.items()}
 
         self.update_metrics(model=self)
