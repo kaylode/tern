@@ -40,7 +40,7 @@ class ViTR(CrossModal):
         return feats_l, feats_v
 
     def visual_forward(self, visual_inputs):
-        outputs_v = self.encoder_v(visual_inputs)                   #[B x 37 x d_model] (append CLS token to first)
+        outputs_v = self.encoder_v(visual_inputs)                   #[B x 196 x d_model]
 
         if self.aggregation == 'mean':
             feats_v = self.img_proj(outputs_v).mean(dim=1)
