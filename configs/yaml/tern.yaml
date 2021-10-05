@@ -34,6 +34,7 @@ settings:
     N_l: 0                             # number of layers
     heads: 4                           # number of heads
     dropout: 0.1
+    precomp_bert: True
 
 
   loss:
