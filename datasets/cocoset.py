@@ -314,3 +314,125 @@ class NumpyFeatureDataset(Dataset):
         s1 = "Number of images: " + str(len(self.image_ids)) + '\n'
         s2 = "Number of texts: " + str(len(self.coco.getAnnIds())) + '\n'
         return s1 + s2
+
+
+class BottomUpSet(Dataset):
+    """
+    Numpy bottom up feature dataset
+    """
+    def __init__(self, ann_path, feat_dir):
+
+        self.ann_path = ann_path
+        self.feat_dir = feat_dir
+        self.coco = COCO(ann_path)
+        self.image_ids = self.coco.getImgIds()
+
+    def __len__(self):
+        return len(self.image_ids)
+
+    def load_numpy(self, image_index):
+        image_info = self.coco.loadImgs(self.image_ids[image_index])[0]
+        npy_path = os.path.join(self.feat_dir, 'data_att', image_info['file_name'][:-4]+'.npz')
+        npy_loc_path = os.path.join(self.feat_dir, 'data_box', image_info['file_name'][:-4]+'.npz')
+        return npy_path, npy_loc_path
+
+    def load_annotations(self, image_index):
+        ann_ids = self.coco.getAnnIds(imgIds=image_index)
+        return ann_ids
+
+    def __getitem__(self, index):
+        image_id = self.image_ids[index]
+        npy_path, npy_loc_path = self.load_numpy(index)
+        ann_ids = self.load_annotations(image_id)
+
+        return {
+            'image_id': image_id,
+            'ann_ids': ann_ids,
+            'npy_path': npy_path,
+            "npy_loc_path": npy_loc_path,
+        }
+
+    def collate_fn(self, batch):
+
+        npy_paths = [s['npy_path'] for s in batch]
+        npy_loc_paths = [s['npy_loc_path'] for s in batch]
+        image_ids = [s['image_id'] for s in batch]
+        ann_ids = [s['ann_ids'] for s in batch]
+
+        npy_feats = []
+        npy_loc_feats = []
+        for npy_path, npy_loc_path in zip(npy_paths, npy_loc_paths):
+            npy_feat = np.load(npy_path, mmap_mode='r')['feat']
+            npy_loc_feat = np.load(npy_loc_path, mmap_mode='r')['feat']
+            npy_feats.append(npy_feat)
+            npy_loc_feats.append(npy_loc_feat)
+
+        npy_feats = np.stack(npy_feats, axis=0)
+        npy_loc_feats = np.stack(npy_loc_feats, axis=0)
+
+        feats = torch.from_numpy(npy_feats).float()
+        loc_feats = torch.from_numpy(npy_loc_feats).float()
+
+        return {
+            'image_ids': image_ids,
+            'ann_ids': ann_ids,
+            'feats': feats,
+            'loc_feats': loc_feats,
+        }
+
+class BertSet(Dataset):
+    """
+    Numpy bert feature dataset
+    """
+    def __init__(self, ann_path, feat_dir):
+
+        self.ann_path = ann_path
+        self.feat_dir = feat_dir
+        self.coco = COCO(ann_path)
+        self.text_ids = self.coco.getAnnIds()
+
+    def __len__(self):
+        return len(self.text_ids)
+
+    def load_numpy(self, ann_index):
+        # get ground truth annotations
+        language_path = os.path.join(self.feat_dir, f"{ann_index}.npz")
+        return language_path
+
+    def load_image_id(self, ann_index):
+        ann = self.coco.loadAnns(ann_index)
+        image_id = ann[0]['image_id']
+        return image_id
+
+    def __getitem__(self, index):
+        ann_id = self.text_ids[index]
+        language_path = self.load_numpy(ann_id)
+        image_id = self.load_image_id(ann_id)
+
+        return {
+            'image_id': image_id,
+            'ann_id': ann_id,
+            'language_path': language_path,
+        }
+
+    def collate_fn(self, batch):
+
+        language_paths = [s['language_path'] for s in batch]
+        image_ids = [s['image_id'] for s in batch]
+        ann_ids = [s['ann_id'] for s in batch]
+
+        npy_feats = []
+        for language_path in language_paths:
+            npy_feat = np.load(language_path, mmap_mode='r')['feat']
+            npy_feats.append(npy_feat)
+
+        npy_feats = np.stack(npy_feats, axis=0)
+
+        lang_feats = make_feature_batch(npy_feats, pad_token=0)
+        lang_feats = lang_feats.float()
+
+        return {
+            'image_ids': image_ids,
+            'text_ids': ann_ids,
+            'lang_feats': lang_feats,
+        }

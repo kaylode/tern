@@ -132,6 +132,10 @@ class RetrievalScore():
         if USE_FAISS:
             self.faiss_pool.reset()
 
+        for metric_name in self.metric_names:
+            metric_fn = metrics_mapping[metric_name]
+            metric_fn.reset()
+
     def update(self, model):
         self.model = model
         self.model.eval()
@@ -140,7 +144,7 @@ class RetrievalScore():
         for idx, batch in enumerate(tqdm(self.queries_loader)):
             ids = batch['ann_ids']
             target_ids = batch['image_ids']
-            img_feats, txt_feats = self.model.inference_step(batch)
+            txt_feats, img_feats = self.model.inference_step(batch)
          
             # Get embedding of each item in batch
             batch_size = img_feats.shape[0]
@@ -160,7 +164,7 @@ class RetrievalScore():
     def compute_gallery(self):
         for idx, batch in enumerate(tqdm(self.gallery_loader)):
             ids = batch['image_ids']
-            img_feats, txt_feats = self.model.inference_step(batch)
+            txt_feats, img_feats = self.model.inference_step(batch)
 
             # Get embedding of each item in batch
             batch_size = img_feats.shape[0]
@@ -240,6 +244,7 @@ class RetrievalScore():
 
     def compute(self):
         print("Extracting features...")
+        self.reset()
         with torch.no_grad():
             self.compute_queries()
             if self.gallery_loader is not None:
@@ -248,7 +253,6 @@ class RetrievalScore():
                 self.gallery_embedding = self.queries_embedding.copy()
                 self.gallery_ids = self.queries_ids.copy()
         
-        self.reset()
         if USE_FAISS:
             self.compute_faiss()
         else:
@@ -265,11 +269,6 @@ class RetrievalScore():
             result_dict.update(metric_fn.value())
         
         return result_dict
-    
-    def reset(self):
-        for metric_name in self.metric_names:
-            metric_fn = metrics_mapping[metric_name]
-            metric_fn.reset()
 
     def value(self):
         result_dict = self.compute()
