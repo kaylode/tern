@@ -255,7 +255,8 @@ class RetrievalScore():
             else:
                 self.gallery_embedding = self.queries_embedding.copy()
                 self.gallery_ids = self.queries_ids.copy()
-                
+        
+        self.reset()
         if USE_FAISS:
             self.compute_faiss()
         else:
