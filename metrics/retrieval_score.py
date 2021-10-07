@@ -60,7 +60,7 @@ metrics_mapping = {
     'R@10': RecallMetric(k=10),
 }
 
-class RetrievalScore2():    
+class RetrievalScore():    
     def __init__(self, 
             image_set, 
             text_set, 
