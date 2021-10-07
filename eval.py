@@ -23,8 +23,16 @@ def train(args, config):
 
     net = get_instance(config.model, device=device)
 
+    imageset = BottomUpSet(
+      ann_path="/content/data/val.json", 
+      feat_dir="/content/data/bottom_up")
+
+    textset = BertSet(
+      ann_path="/content/data/val.json", 
+      feat_dir="/content/data/bert_features")
+
     metric = RetrievalScore(
-            valset, valset, 
+            imageset, textset, 
             max_distance = 1.3,
             top_k=args.top_k,
             metric_names=["R@1", "R@5", "R@10"],

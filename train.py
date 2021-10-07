@@ -34,10 +34,18 @@ def train(args, config):
 
     criterion = get_loss_fn(config.loss)
 
+    imageset = BottomUpSet(
+      ann_path="/content/data/val.json", 
+      feat_dir="/content/data/bottom_up")
+
+    textset = BertSet(
+      ann_path="/content/data/val.json", 
+      feat_dir="/content/data/bert_features")
+
     metric = RetrievalScore(
-            valset, valset, 
+            imageset, textset, 
             max_distance = 1.3,
-            top_k=10,
+            top_k=args.top_k,
             metric_names=["R@1", "R@5", "R@10"],
             dimension=config.model['args']['d_embed'],
             save_results=True)
