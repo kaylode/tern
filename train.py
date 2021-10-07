@@ -35,12 +35,12 @@ def train(args, config):
     criterion = get_loss_fn(config.loss)
 
     imageset = BottomUpSet(
-      ann_path="/content/data/val.json", 
-      feat_dir="/content/data/bottom_up")
+      ann_path=valset.ann_path, 
+      feat_dir=valset.feat_dir)
 
     textset = BertSet(
-      ann_path="/content/data/val.json", 
-      feat_dir="/content/data/bert_features")
+      ann_path=valset.ann_path, 
+      feat_dir=valset.text_dir)
 
     metric = RetrievalScore(
             imageset, textset, 
