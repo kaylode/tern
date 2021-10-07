@@ -27,14 +27,6 @@ def get_dist_func(name):
     else:
         raise NotImplementedError
 
-def get_retrieval_embedding(img_feat, txt_feat, embedding_type):
-    if embedding_type == 'img':
-        return img_feat
-    elif embedding_type == 'txt':
-        return txt_feat
-    else:
-        return np.concatenate([img_feat, txt_feat], axis=-1)
-
 def save_results(query_results):
     if not os.path.exists('./results/'):
         os.mkdir('./results/')
@@ -68,10 +60,10 @@ metrics_mapping = {
     'R@10': RecallMetric(k=10),
 }
 
-class RetrievalScore():    
+class RetrievalScore2():    
     def __init__(self, 
-            queries_set, 
-            gallery_set=None, 
+            image_set, 
+            text_set, 
             dimension=1024,
             metric_names=['FT', "ST", "MAP", "NN", "F1", "R@10"],
             max_distance = None,
@@ -79,35 +71,38 @@ class RetrievalScore():
             save_results=True):
 
         self.metric_names = metric_names
-        self.queries_loader = data.DataLoader(
-            queries_set,
+        self.image_loader = data.DataLoader(
+            image_set,
             batch_size=256, 
-            shuffle = True, 
-            collate_fn=queries_set.collate_fn, 
+            shuffle = False, 
+            collate_fn=image_set.collate_fn, 
             num_workers= 2,
             pin_memory=True
         )
 
-        self.gallery_loader = data.DataLoader(
-            gallery_set,
+        self.text_loader = data.DataLoader(
+            text_set,
             batch_size=256, 
-            shuffle = True, 
-            collate_fn=gallery_set.collate_fn, 
+            shuffle = False, 
+            collate_fn=text_set.collate_fn, 
             num_workers= 2,
             pin_memory=True
-        ) if gallery_set is not None else None
+        )
         
         self.top_k = top_k                  # Query top k candidates
         self.max_distance = max_distance    # Query candidates with distances lower than threshold
         self.save_results = save_results    # Save for vizualization
-        self.queries_embedding_type = 'txt'
-        self.gallery_embedding_type = 'img'
 
-        self.queries_embedding = [] 
-        self.gallery_embedding = []
-        self.queries_ids = []
-        self.gallery_ids = []
-        self.targets_ids = []
+        self.image_embedding = [] 
+        self.text_embedding = []
+
+        # For image-to-text retrieval
+        self.image_ids = []
+        self.text_target_ids = []
+
+        # For text-to-image retrieval
+        self.text_ids = []
+        self.image_target_ids = []
 
         # Distance function
         self.dist_func = get_dist_func('cosine')
@@ -121,11 +116,17 @@ class RetrievalScore():
             self.faiss_pool = faiss.index_cpu_to_gpu(res, 0, self.faiss_pool)
 
     def reset(self):
-        self.queries_embedding = [] 
-        self.gallery_embedding = []
-        self.queries_ids = []
-        self.gallery_ids = []
-        self.targets_ids = []
+        self.image_embedding = [] 
+        self.text_embedding = []
+        
+        # For image-to-text retrieval
+        self.image_ids = []
+        self.text_target_ids = []
+
+        # For text-to-image retrieval
+        self.text_ids = []
+        self.image_target_ids = []
+
         if self.save_results:
             self.results_dict = {}
 
@@ -134,59 +135,56 @@ class RetrievalScore():
 
         for metric_name in self.metric_names:
             metric_fn = metrics_mapping[metric_name]
-            metric_fn.reset()
+            metric_fn.reset()        
 
     def update(self, model):
         self.model = model
         self.model.eval()
 
-    def compute_queries(self):
-        for idx, batch in enumerate(tqdm(self.queries_loader)):
-            ids = batch['ann_ids']
-            target_ids = batch['image_ids']
-            txt_feats, img_feats = self.model.inference_step(batch)
+    def compute_images(self):
+        for idx, batch in enumerate(tqdm(self.image_loader)):
+            image_ids = batch['ids']
+            text_target_ids = batch['text_ids']
+            feats = self.model.get_visual_embeddings(batch)
          
             # Get embedding of each item in batch
-            batch_size = img_feats.shape[0]
+            batch_size = feats.shape[0]
             for i in range(batch_size):
-                feat = get_retrieval_embedding(
-                    img_feats[i], 
-                    txt_feats[i], 
-                    embedding_type=self.queries_embedding_type)
+                feat = feats[i]
+                self.image_embedding.append(feat)
+                self.image_ids.append(image_ids[i])
+                self.text_target_ids.append(text_target_ids[i])
+                
+        self.image_embedding = np.array(self.image_embedding)
+        self.text_target_ids = np.array(self.text_target_ids)
+        self.image_ids = np.array(self.image_ids)
 
-                self.queries_embedding.append(feat)
-                self.queries_ids.append(ids[i])
-                self.targets_ids.append(target_ids[i])
-        self.queries_embedding = np.array(self.queries_embedding)
-        self.targets_ids = np.array(self.targets_ids)
-        self.queries_ids = np.array(self.queries_ids)
-
-    def compute_gallery(self):
-        for idx, batch in enumerate(tqdm(self.gallery_loader)):
-            ids = batch['image_ids']
-            txt_feats, img_feats = self.model.inference_step(batch)
+    def compute_texts(self):
+        for idx, batch in enumerate(tqdm(self.text_loader)):
+            text_ids = batch['ids']
+            image_target_ids = batch['image_ids']
+            feats = self.model.get_lang_embeddings(batch)
 
             # Get embedding of each item in batch
-            batch_size = img_feats.shape[0]
+            batch_size = feats.shape[0]
             for i in range(batch_size):
-                feat = get_retrieval_embedding(
-                    img_feats[i], 
-                    txt_feats[i], 
-                    embedding_type=self.gallery_embedding_type)
+                feat = feats[i]
+                self.text_embedding.append(feat)
+                self.text_ids.append(text_ids[i])
+                self.image_target_ids.append(image_target_ids[i])
 
-                self.gallery_embedding.append(feat)
-                self.gallery_ids.append(ids[i])
-        self.gallery_embedding = np.array(self.gallery_embedding)
-        self.gallery_ids = np.array(self.gallery_ids)
+        self.text_embedding = np.array(self.text_embedding)
+        self.image_target_ids = np.array(self.image_target_ids)
+        self.text_ids = np.array(self.text_ids)
 
-    def compute_default(self):
+    def compute_default(self, queries_embedding, gallery_embedding, queries_ids, targets_ids, gallery_ids):
         """
         Compute score for each metric and return 
         """
 
         # Compute distance matrice for queries and gallery
         print("Calculating distance matrice...")
-        dist_mat = self.dist_func(self.queries_embedding, self.gallery_embedding)
+        dist_mat = self.dist_func(queries_embedding, gallery_embedding)
 
         # np.savetxt("./results/dist_mat.txt",dist_mat)
         for idx, row in enumerate(dist_mat):
@@ -197,10 +195,10 @@ class RetrievalScore():
                 max_distance=self.max_distance
             )
 
-            current_id = self.queries_ids[idx] # query caption id
-            target_ids = self.targets_ids[idx] # target image id
+            current_id = queries_ids[idx] # query id
+            target_ids = targets_ids[idx] # target id
 
-            pred_ids = self.gallery_ids[top_k_indexes] # gallery image id
+            pred_ids = gallery_ids[top_k_indexes] # gallery id
             pred_ids = pred_ids.tolist()
 
             if self.save_results:
@@ -212,22 +210,25 @@ class RetrievalScore():
             
             for metric_name in self.metric_names:
                 metric_fn = metrics_mapping[metric_name]
-                metric_fn.update(pred_ids, [target_ids])
+                metric_fn.update(pred_ids, target_ids)
 
-    def compute_faiss(self):
+    def compute_faiss(self, queries_embedding, gallery_embedding, queries_ids, targets_ids, gallery_ids):
         """
         Compute score for each metric and return using faiss
         """
 
-        self.faiss_pool.add(self.gallery_embedding)
-        top_k_scores_all, top_k_indexes_all = self.faiss_pool.search(self.queries_embedding, k=self.top_k)
+        self.faiss_pool.reset()
+        self.faiss_pool.add(gallery_embedding)
+        top_k_scores_all, top_k_indexes_all = self.faiss_pool.search(queries_embedding, k=self.top_k)
         
         for idx, (top_k_scores, top_k_indexes) in enumerate(zip(top_k_scores_all, top_k_indexes_all)):
           
-            current_id = self.queries_ids[idx]
-            target_ids = self.targets_ids[idx]
+            current_id = queries_ids[idx]
+            target_ids = targets_ids[idx]
+            if not isinstance(target_ids, np.ndarray):
+                target_ids = np.array([target_ids])
 
-            pred_ids = self.gallery_ids[top_k_indexes]
+            pred_ids = gallery_ids[top_k_indexes]
             pred_ids = pred_ids.tolist()
 
             if self.save_results:
@@ -239,37 +240,67 @@ class RetrievalScore():
             
             for metric_name in self.metric_names:
                 metric_fn = metrics_mapping[metric_name]
-                metric_fn.update(pred_ids, [target_ids])
+                metric_fn.update(pred_ids, target_ids)
                 
+
+    def _compute_score(
+        self, 
+        queries_embedding, 
+        gallery_embedding, 
+        queries_ids, 
+        targets_ids, 
+        gallery_ids,
+        save_txt=False):
+
+        if USE_FAISS:
+            self.compute_faiss(
+                queries_embedding, 
+                gallery_embedding, 
+                queries_ids, 
+                targets_ids, 
+                gallery_ids)
+        else:
+            self.compute_default(
+                queries_embedding, 
+                gallery_embedding, 
+                queries_ids, 
+                targets_ids, 
+                gallery_ids)
+
+        # Save results for visualization later
+        if self.save_results and save_txt:
+            print("Saving retrieval results...")
+            save_results(self.results_dict)
+
+        result_dict = {}
+        for metric_name in self.metric_names:
+            metric_fn = metrics_mapping[metric_name]
+            result_dict.update(metric_fn.value())
+
+        return result_dict
 
     def compute(self):
         print("Extracting features...")
         self.reset()
         with torch.no_grad():
-            self.compute_queries()
-            if self.gallery_loader is not None:
-                self.compute_gallery()
-            else:
-                self.gallery_embedding = self.queries_embedding.copy()
-                self.gallery_ids = self.queries_ids.copy()
-        
-        if USE_FAISS:
-            self.compute_faiss()
-        else:
-            self.compute_default()
+            self.compute_images()
+            self.compute_texts()
+            
+        i2t_dict = self._compute_score(
+            self.image_embedding, self.text_embedding, 
+            self.image_ids, self.text_target_ids, self.text_ids)
 
-        # Save results for visualization later
-        if self.save_results:
-            print("Saving retrieval results...")
-            save_results(self.results_dict)
-        
-        result_dict = {}
-        for metric_name in self.metric_names:
-            metric_fn = metrics_mapping[metric_name]
-            result_dict.update(metric_fn.value())
+        t2i_dict = self._compute_score(
+            self.text_embedding, self.image_embedding, 
+            self.text_ids , self.image_target_ids, self.image_ids, True)
+
+        result_dict = {
+            'i2t': i2t_dict,
+            't2i': t2i_dict
+        }
         
         return result_dict
-
+    
     def value(self):
         result_dict = self.compute()
         return result_dict
