@@ -45,7 +45,7 @@ def train(args, config):
     metric = RetrievalScore(
             imageset, textset, 
             max_distance = 1.3,
-            top_k=args.top_k,
+            top_k=10,
             metric_names=["R@1", "R@5", "R@10"],
             dimension=config.model['args']['d_embed'],
             save_results=True)
