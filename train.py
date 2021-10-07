@@ -56,9 +56,6 @@ def train(args, config):
         start_epoch, start_iter, best_value = get_epoch_iters(args.resume)
     else:
         print('Not resume. Load pretrained weights...')
-        # args.resume = os.path.join(CACHE_DIR, f'{config.model_name}.pth')
-        # download_pretrained_weights(f'{config.model_name}', args.resume)
-        # load_checkpoint(model, args.resume)
         start_epoch, start_iter, best_value = 0, 0, 0.0
         
     scheduler, step_per_epoch = get_lr_scheduler(
@@ -108,6 +105,6 @@ def train(args, config):
 if __name__ == '__main__':
     
     args = parser.parse_args()
-    config = Config(os.path.join('configs/yaml',f'{args.config}'))
+    config = Config(f'{args.config}')
 
     train(args, config)
