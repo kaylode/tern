@@ -1,33 +1,33 @@
-import torch
-import numpy as np
+
 
 class TemplateMetric():
     """
-    Accuracy metric for classification
+    Abstract template for metric
     """
-    def __init__(self, decimals = 10):
-        self.reset()
-        
+    def __init__(self):
+        pass        
 
     def compute(self, output, target):
-        pass
+        raise NotImplementedError("This is an abtract method")
 
     def update(self,  output, target):
-        pass
+        raise NotImplementedError("This is an abtract method")
+
 
     def reset(self):
-        self.sample_size = 0
-        pass
+        raise NotImplementedError("This is an abtract method")
+
 
     def value(self):
+        raise NotImplementedError("This is an abtract method")
 
-        return {"none" : None}
 
     def __str__(self):
-        return f'None: {self.value()}'
+        raise NotImplementedError("This is an abtract method")
 
     def __len__(self):
-        return len(self.sample_size)
+        raise NotImplementedError("This is an abtract method")
+
 
     
   
