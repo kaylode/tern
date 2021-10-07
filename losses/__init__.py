@@ -1,7 +1,8 @@
 import torch
-from .nt_xent_loss import NTXentLoss
+from .nt_xent import NTXentLoss, CustomNTXentLoss
+from .contrastive import ContrastiveLoss
+from .triplet import TripletLoss
 
-from pytorch_metric_learning import losses 
 from pytorch_metric_learning.distances import CosineSimilarity, DotProductSimilarity, LpDistance
 from pytorch_metric_learning.reducers import ThresholdReducer, MeanReducer
 from pytorch_metric_learning.regularizers import LpRegularizer
@@ -49,35 +50,23 @@ def get_loss_fn(config):
     if 'regularizer' in config.keys():
         kwargs['embedding_regularizer'] = get_regularizer(**config['regularizer'])
 
-
     loss_fn = None
     if config['name'] == 'triplet':
-        loss_fn = losses.TripletMarginLoss
+        loss_fn = TripletLoss
 
     if config['name'] == 'nxtent':
-        loss_fn = losses.NTXentLoss
+        loss_fn = NTXentLoss
 
     if config['name'] == 'custom_nxtent':
-        loss_fn = NTXentLoss(temperature=config['temperature'])
+        loss_fn = CustomNTXentLoss(temperature=config['temperature'])
         return loss_fn
 
     if config['name'] == 'contrastive':
-        loss_fn = losses.ContrastiveLoss
+        loss_fn = ContrastiveLoss
 
     if loss_fn is None:
         raise ValueError("Loss function not exists")
 
     loss_fn = loss_fn(**kwargs)
 
-    def loss_function(feats1, feats2):
-        # Because using loss function from 
-        # https://github.com/KevinMusgrave/pytorch-metric-learning
-
-        labels = torch.arange(feats1.size(0))
-        embeddings = torch.cat([feats1, feats2], dim=0)
-        labels = torch.cat([labels, labels], dim=0)
-
-        loss = loss_fn(embeddings, labels)
-        return {'T': loss}
-    
-    return loss_function
+    return loss_fn

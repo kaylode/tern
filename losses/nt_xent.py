@@ -2,10 +2,12 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
-class NTXentLoss(nn.Module):
+from pytorch_metric_learning import losses 
+
+class CustomNTXentLoss(nn.Module):
     # Source: https://arxiv.org/pdf/2010.00747.pdf
     def __init__(self, temperature=1., weight=0.5):
-        super(NTXentLoss, self).__init__()
+        super(CustomNTXentLoss, self).__init__()
         self.temperature = temperature
         self.weight = weight
         self.cossim = nn.CosineSimilarity(dim=-1)
@@ -35,3 +37,16 @@ class NTXentLoss(nn.Module):
             'I-T': loss_vu,
             'T-I': loss_uv
         }
+
+
+class NTXentLoss(losses.NTXentLoss):
+    def __init__(self, **kwargs) -> None:
+        super().__init__(**kwargs)
+
+    def forward(self, feats1, feats2):
+        labels = torch.arange(feats1.size(0))
+        embeddings = torch.cat([feats1, feats2], dim=0)
+        labels = torch.cat([labels, labels], dim=0)
+
+        loss = self(embeddings, labels)
+        return {'T': loss}
