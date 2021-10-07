@@ -235,7 +235,7 @@ class Trainer():
             gallery_ids = retrieval_results.item()[query_id]
             
             top_k_relevant_image_scores = gallery_ids['scores'][:5]
-            top_k_relevant_image_ids = gallery_ids['image_ids'][:5]
+            top_k_relevant_image_ids = gallery_ids['pred_ids'][:5]
             ground_truth_id = int(gallery_ids['target_ids'])
 
             top_k_relevant_image_paths = self.valloader.dataset.load_image_by_id(top_k_relevant_image_ids)
@@ -263,20 +263,20 @@ class Trainer():
             query_id = int(query_id)
             gallery_ids = retrieval_results.item()[query_id]
             
-            top_k_relevant_image_scores = gallery_ids['scores'][:5]
-            top_k_relevant_image_ids = gallery_ids['image_ids'][:5]
+            top_k_relevant_text_scores = gallery_ids['scores'][:5]
+            top_k_relevant_text_ids = gallery_ids['pred_ids'][:5]
             ground_truth_ids = gallery_ids['target_ids'].tolist()
 
-            top_k_relevant_image_paths = self.valloader.dataset.load_annotations_by_id(top_k_relevant_image_ids)
-            ground_truth_anns = self.valloader.dataset.load_annotations_by_id(ground_truth_ids)
+            pred_texts = self.valloader.dataset.load_annotations_by_id(top_k_relevant_text_ids)
+            gt_texts = self.valloader.dataset.load_annotations_by_id(ground_truth_ids)
             query_path = self.valloader.dataset.load_image_by_id(query_id)[0]
 
             image = cv2.imread(query_path)
             basename = os.path.basename(query_path)
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
-            gt_text = '\n'.join(ground_truth_anns)
-            pred_text = '\n'.join(top_k_relevant_image_paths)
+            gt_text = '\n'.join(gt_texts)
+            pred_text = '\n'.join(pred_texts)
             text = f"GT: {gt_text} \n\n Pred: {pred_text}"
             fig = draw_image_caption(image, text, image_name=None, figsize=(15,15))
             self.logger.write_image(f"i2t/{basename}", fig, step=self.epoch)

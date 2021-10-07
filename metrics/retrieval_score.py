@@ -203,7 +203,7 @@ class RetrievalScore():
 
             if self.save_results:
                 self.results_dict[current_id] = {
-                    'image_ids': pred_ids,
+                    'pred_ids': pred_ids,
                     'target_ids': target_ids,
                     'scores': top_k_scores 
                 }
@@ -233,7 +233,7 @@ class RetrievalScore():
 
             if self.save_results:
                 self.results_dict[current_id] = {
-                    'image_ids': pred_ids,
+                    'pred_ids': pred_ids,
                     'target_ids': target_ids,
                     'scores': top_k_scores 
                 }
