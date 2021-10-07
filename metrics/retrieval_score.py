@@ -27,10 +27,10 @@ def get_dist_func(name):
     else:
         raise NotImplementedError
 
-def save_results(query_results):
+def save_results(query_results, outname):
     if not os.path.exists('./results/'):
         os.mkdir('./results/')
-    np.save('./results/query_results.npy', query_results, allow_pickle=True)
+    np.save(f'./results/{outname}.npy', query_results, allow_pickle=True)
 
 def get_top_k(object_dist_score, top_k=5, max_distance=2.0):
     """
@@ -250,8 +250,9 @@ class RetrievalScore():
         queries_ids, 
         targets_ids, 
         gallery_ids,
-        save_txt=False):
+        outname):
 
+        self.results_dict = {}
         if USE_FAISS:
             self.compute_faiss(
                 queries_embedding, 
@@ -268,9 +269,9 @@ class RetrievalScore():
                 gallery_ids)
 
         # Save results for visualization later
-        if self.save_results and save_txt:
+        if self.save_results:
             print("Saving retrieval results...")
-            save_results(self.results_dict)
+            save_results(self.results_dict, outname)
 
         result_dict = {}
         for metric_name in self.metric_names:
@@ -288,16 +289,14 @@ class RetrievalScore():
             
         i2t_dict = self._compute_score(
             self.image_embedding, self.text_embedding, 
-            self.image_ids, self.text_target_ids, self.text_ids)
+            self.image_ids, self.text_target_ids, self.text_ids, outname='i2t_results')
 
         t2i_dict = self._compute_score(
             self.text_embedding, self.image_embedding, 
-            self.text_ids , self.image_target_ids, self.image_ids, True)
+            self.text_ids , self.image_target_ids, self.image_ids, outname='t2i_results')
 
-        result_dict = {
-            'i2t': i2t_dict,
-            't2i': t2i_dict
-        }
+        result_dict = {"i2t/" + k : v for k,v in i2t_dict.items()}
+        result_dict.update({"t2i/" + k : v for k,v in t2i_dict.items()})
         
         return result_dict
     

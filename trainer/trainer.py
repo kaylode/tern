@@ -199,7 +199,7 @@ class Trainer():
         self.logging(log_dict, step=self.epoch)
 
         # Save model gives best average R@10 score
-        if metric_dict['R@10'] > self.best_value:
+        if metric_dict['t2i/R@10'] > self.best_value:
             self.best_value = metric_dict['R@10']
             self.checkpoint.save(
                 self.model, 
@@ -214,14 +214,21 @@ class Trainer():
             self.visualize_batch()
         
     def visualize_batch(self):
+        """
+        Visualize retrieval results
+        """
+
+        """
+        Retrieve relevant images with a text query
+        """
         from utils.utils import draw_retrieval_results
         import random
 
         # Retrieval dict {post_id: {'post_ids': [], 'scores': []}
-        retrieval_results = np.load('./results/query_results.npy', allow_pickle=True)
+        retrieval_results = np.load('./results/t2i_results.npy', allow_pickle=True)
         
         query_ids = list(retrieval_results.item().keys())
-        query_ids = random.choices(query_ids, k=32)
+        query_ids = random.choices(query_ids, k=16)
 
         for idx, query_id in enumerate(query_ids):
             query_id = int(query_id)
@@ -237,9 +244,43 @@ class Trainer():
 
             top_k_relevant_results = [i for i in zip(top_k_relevant_image_paths, top_k_relevant_image_scores)]
             fig = draw_retrieval_results(query, top_k_relevant_results, gt_path = ground_truth_image_path, figsize=(25,6))
-            self.logger.write_image(query, fig, step=self.epoch)
+            self.logger.write_image(f"t2i/{query}", fig, step=self.epoch)
+
+
+        """
+        Retrieve relevant texts with an image query
+        """
+        from utils.utils import draw_image_caption
+        import cv2
+
+        # Retrieval dict {post_id: {'post_ids': [], 'scores': []}
+        retrieval_results = np.load('./results/i2t_results.npy', allow_pickle=True)
         
-       
+        query_ids = list(retrieval_results.item().keys())
+        query_ids = random.choices(query_ids, k=16)
+
+        for idx, query_id in enumerate(query_ids):
+            query_id = int(query_id)
+            gallery_ids = retrieval_results.item()[query_id]
+            
+            top_k_relevant_image_scores = gallery_ids['scores'][:5]
+            top_k_relevant_image_ids = gallery_ids['image_ids'][:5]
+            ground_truth_ids = gallery_ids['target_ids'].tolist()
+
+            top_k_relevant_image_paths = self.valloader.dataset.load_annotations_by_id(top_k_relevant_image_ids)
+            ground_truth_anns = self.valloader.dataset.load_annotations_by_id(ground_truth_ids)
+            query_path = self.valloader.dataset.load_image_by_id(query_id)[0]
+
+            image = cv2.imread(query_path)
+            basename = os.path.basename(query_path)
+            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+            gt_text = '\n'.join(ground_truth_anns)
+            pred_text = '\n'.join(top_k_relevant_image_paths)
+            text = f"GT: {gt_text} \n\n Pred: {pred_text}"
+            fig = draw_image_caption(image, text, image_name=None, figsize=(15,15))
+            self.logger.write_image(f"i2t/{basename}", fig, step=self.epoch)
+
     def logging(self, logs, step):
         tags = [l for l in logs.keys()]
         values = [l for l in logs.values()]
