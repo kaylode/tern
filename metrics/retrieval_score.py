@@ -272,7 +272,12 @@ class RetrievalScore():
             result_dict.update(metric_fn.value())
         
         return result_dict
-            
+    
+    def reset(self):
+        for metric_name in self.metric_names:
+            metric_fn = metrics_mapping[metric_name]
+            metric_fn.reset()
+
     def value(self):
         result_dict = self.compute()
         return result_dict
