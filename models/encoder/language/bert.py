@@ -37,7 +37,8 @@ class EncoderBERT(nn.Module):
             with torch.no_grad():
                 x = self.pipeline(x)
             x = np.squeeze(x)
-            x = [np.array(i, dtype=np.float64) for i in x]
+            if len(x.shape) == 2:
+                x = np.expand_dims(x, axis=0)
             x = make_feature_batch(x, pad_token=0)
             x = x.to(self.device)
 
