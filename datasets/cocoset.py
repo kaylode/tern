@@ -121,7 +121,7 @@ class CocoDataset(Dataset):
         image_name = os.path.basename(image_path)
         image, _ = self.load_augment(image_path)
 
-        texts = self.load_annotations(index, return_all=True)
+        texts, _ = self.load_annotations(index, return_all=True)
         
         normalize = False
         if self.transforms is not None:
