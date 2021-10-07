@@ -374,8 +374,8 @@ class BottomUpSet(Dataset):
         loc_feats = torch.from_numpy(npy_loc_feats).float()
 
         return {
-            'image_ids': image_ids,
-            'ann_ids': ann_ids,
+            'ids': image_ids,
+            'text_ids': ann_ids,
             'feats': feats,
             'loc_feats': loc_feats,
         }
@@ -426,13 +426,11 @@ class BertSet(Dataset):
             npy_feat = np.load(language_path, mmap_mode='r')['feat']
             npy_feats.append(npy_feat)
 
-        npy_feats = np.stack(npy_feats, axis=0)
-
         lang_feats = make_feature_batch(npy_feats, pad_token=0)
         lang_feats = lang_feats.float()
 
         return {
+            'ids': ann_ids,
             'image_ids': image_ids,
-            'text_ids': ann_ids,
             'lang_feats': lang_feats,
         }
