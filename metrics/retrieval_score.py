@@ -179,9 +179,6 @@ class RetrievalScore():
         """
         Compute score for each metric and return 
         """
-        total_scores = {
-            i: [] for i in self.metric_names
-        }
 
         # Compute distance matrice for queries and gallery
         print("Calculating distance matrice...")
@@ -211,11 +208,7 @@ class RetrievalScore():
             
             for metric_name in self.metric_names:
                 metric_fn = metrics_mapping[metric_name]
-                score = metric_fn(target_ids, pred_ids)
-                total_scores[metric_name].append(score)
-
-        return total_scores
-
+                metric_fn.update(pred_ids, [target_ids])
 
     def compute_faiss(self):
         """
@@ -224,7 +217,6 @@ class RetrievalScore():
 
         self.faiss_pool.add(self.gallery_embedding)
         top_k_scores_all, top_k_indexes_all = self.faiss_pool.search(self.queries_embedding, k=self.top_k)
-        
         
         for idx, (top_k_scores, top_k_indexes) in enumerate(zip(top_k_scores_all, top_k_indexes_all)):
           
@@ -260,7 +252,7 @@ class RetrievalScore():
         if USE_FAISS:
             self.compute_faiss()
         else:
-            total_scores = self.compute_default()
+            self.compute_default()
 
         # Save results for visualization later
         if self.save_results:
