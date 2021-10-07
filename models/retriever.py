@@ -41,3 +41,10 @@ class Retriever(BaseModel):
         self.update_metrics(model=self)
         return loss['T'], loss_dict
 
+    def get_visual_embeddings(self, batch):
+        outputs_v = self.model.visual_forward_batch(batch, self.device)
+        return outputs_v.cpu().detach().numpy()
+
+    def get_lang_embeddings(self, batch):
+        outputs_l = self.model.lang_forward_batch(batch, self.device)
+        return outputs_l.cpu().detach().numpy()
