@@ -1,13 +1,18 @@
-# from . import TemplateMetric
 import os
-import pandas as pd
 import numpy as np
-from sklearn.metrics.pairwise import euclidean_distances, cosine_distances
-import torch
-import torch.nn as nn
-import torch.utils.data as data
 from tqdm import tqdm
 
+import torch
+import torch.utils.data as data
+from sklearn.metrics.pairwise import euclidean_distances, cosine_distances
+
+from .f1 import F1Metric
+from .map import MAPMetric
+from .recall import RecallMetric
+from .neighbor import NearestNeighborMetric
+from .tier import FirstTierMetric, SecondTierMetric
+
+# Use Faiss for faster retrieval: https://github.com/facebookresearch/faiss
 try:
     import faiss
     USE_FAISS=True
@@ -52,60 +57,15 @@ def get_top_k(object_dist_score, top_k=5, max_distance=2.0):
 
     return top_k_indexes, top_k_scores
 
-
-"""
-All retrieval metrics
-- Mean average precision
-- First tier
-- Second tier
-- Dice score
-- Nearest neighbor
-"""
-
-# Modified version of https://github.com/kaylode/3d-mesh-retrieval/blob/74e3a888da825a89e68643c1746e612626d248ef/MeshNet/utils/evaluate_distmat.py#L24
-def nearest_neighbor(target_labels, retrieved_labels):
-    return int(retrieved_labels[0] in target_labels)
-
-def first_tier(target_labels, retrieved_labels):
-    n_relevant_objs = sum([1 if i in target_labels else 0 for i in retrieved_labels])
-    retrieved_1st_tier = retrieved_labels[:n_relevant_objs+1]
-    return np.mean([1 if i in target_labels else 0 for i in retrieved_1st_tier])
-
-def second_tier(target_labels, retrieved_labels):
-    n_relevant_objs = sum([1 if i in target_labels else 0 for i in retrieved_labels])
-    retrieved_2nd_tier = retrieved_labels[:2*n_relevant_objs+1]
-    return np.mean([1 if i in target_labels else 0 for i in retrieved_2nd_tier])
-
-def mean_average_precision(target_labels, retrieved_labels):
-    score = 0.0
-    num_hits = 0.0
-
-    for i, p in enumerate(retrieved_labels):
-        if p in target_labels and p not in retrieved_labels[:i]:
-            num_hits += 1.0
-            score += num_hits / (i+1.0)
-    return score
-
-def recall_at_k(target_labels, retrieved_labels, k=10):
-    retrieved_labels = retrieved_labels[:k]
-    n_targets = len(target_labels) # Number of corrects
-    n_relevant_objs = len(np.intersect1d(target_labels,retrieved_labels))
-    score = n_relevant_objs*1.0 / n_targets
-    return score
-
-def dice_score(target_labels, retrieved_labels):
-    # F1 score: https://www.kaggle.com/cdeotte/part-2-rapids-tfidfvectorizer-cv-0-700?scriptVersionId=0
-    n = len(np.intersect1d(target_labels,retrieved_labels)) # Number of corrects
-    score = 2*n / (len(target_labels)+len(retrieved_labels))
-    return score
-
 metrics_mapping = {
-    'FT': first_tier,
-    'ST': second_tier,
-    'NN': nearest_neighbor,
-    'MAP': mean_average_precision,
-    'F1': dice_score,
-    'R@10': recall_at_k,
+    'FT': FirstTierMetric(),
+    'ST': SecondTierMetric(),
+    'NN': NearestNeighborMetric(),
+    'MAP@10': MAPMetric(k=10),
+    'F1@10': F1Metric(k=10),
+    'R@1': RecallMetric(k=10),
+    'R@5': RecallMetric(k=5),
+    'R@10': RecallMetric(k=10),
 }
 
 class RetrievalScore():    
@@ -114,7 +74,7 @@ class RetrievalScore():
             gallery_set=None, 
             dimension=1024,
             metric_names=['FT', "ST", "MAP", "NN", "F1", "R@10"],
-            max_distance = 1.3,
+            max_distance = None,
             top_k=10,
             save_results=True):
 
@@ -145,15 +105,15 @@ class RetrievalScore():
 
         self.queries_embedding = [] 
         self.gallery_embedding = []
-        self.queries_post_ids = []
-        self.gallery_post_ids = []
-        self.targets_post_ids = []
+        self.queries_ids = []
+        self.gallery_ids = []
+        self.targets_ids = []
 
         # Distance function
         self.dist_func = get_dist_func('cosine')
 
         if self.save_results:
-            self.post_results_dict = {}
+            self.results_dict = {}
 
         if USE_FAISS:
             res = faiss.StandardGpuResources()  # use a single GPU
@@ -163,11 +123,11 @@ class RetrievalScore():
     def reset(self):
         self.queries_embedding = [] 
         self.gallery_embedding = []
-        self.queries_post_ids = []
-        self.gallery_post_ids = []
-        self.targets_post_ids = []
+        self.queries_ids = []
+        self.gallery_ids = []
+        self.targets_ids = []
         if self.save_results:
-            self.post_results_dict = {}
+            self.results_dict = {}
 
         if USE_FAISS:
             self.faiss_pool.reset()
@@ -178,7 +138,7 @@ class RetrievalScore():
 
     def compute_queries(self):
         for idx, batch in enumerate(tqdm(self.queries_loader)):
-            post_ids = batch['ann_ids']
+            ids = batch['ann_ids']
             target_ids = batch['image_ids']
             img_feats, txt_feats = self.model.inference_step(batch)
          
@@ -191,15 +151,15 @@ class RetrievalScore():
                     embedding_type=self.queries_embedding_type)
 
                 self.queries_embedding.append(feat)
-                self.queries_post_ids.append(post_ids[i])
-                self.targets_post_ids.append(target_ids[i])
+                self.queries_ids.append(ids[i])
+                self.targets_ids.append(target_ids[i])
         self.queries_embedding = np.array(self.queries_embedding)
-        self.targets_post_ids = np.array(self.targets_post_ids)
-        self.queries_post_ids = np.array(self.queries_post_ids)
+        self.targets_ids = np.array(self.targets_ids)
+        self.queries_ids = np.array(self.queries_ids)
 
     def compute_gallery(self):
         for idx, batch in enumerate(tqdm(self.gallery_loader)):
-            post_ids = batch['image_ids']
+            ids = batch['image_ids']
             img_feats, txt_feats = self.model.inference_step(batch)
 
             # Get embedding of each item in batch
@@ -211,9 +171,9 @@ class RetrievalScore():
                     embedding_type=self.gallery_embedding_type)
 
                 self.gallery_embedding.append(feat)
-                self.gallery_post_ids.append(post_ids[i])
+                self.gallery_ids.append(ids[i])
         self.gallery_embedding = np.array(self.gallery_embedding)
-        self.gallery_post_ids = np.array(self.gallery_post_ids)
+        self.gallery_ids = np.array(self.gallery_ids)
 
     def compute_default(self):
         """
@@ -236,22 +196,22 @@ class RetrievalScore():
                 max_distance=self.max_distance
             )
 
-            current_post_id = self.queries_post_ids[idx] # query caption id
-            target_post_ids = self.targets_post_ids[idx] # target image id
+            current_id = self.queries_ids[idx] # query caption id
+            target_ids = self.targets_ids[idx] # target image id
 
-            pred_post_ids = self.gallery_post_ids[top_k_indexes] # gallery image id
-            pred_post_ids = pred_post_ids.tolist()
+            pred_ids = self.gallery_ids[top_k_indexes] # gallery image id
+            pred_ids = pred_ids.tolist()
 
             if self.save_results:
-                self.post_results_dict[current_post_id] = {
-                    'image_ids': pred_post_ids,
-                    'target_ids': target_post_ids,
+                self.results_dict[current_id] = {
+                    'image_ids': pred_ids,
+                    'target_ids': target_ids,
                     'scores': top_k_scores 
                 }
             
             for metric_name in self.metric_names:
                 metric_fn = metrics_mapping[metric_name]
-                score = metric_fn(target_post_ids, pred_post_ids)
+                score = metric_fn(target_ids, pred_ids)
                 total_scores[metric_name].append(score)
 
         return total_scores
@@ -261,9 +221,6 @@ class RetrievalScore():
         """
         Compute score for each metric and return using faiss
         """
-        total_scores = {
-            i: [] for i in self.metric_names
-        }
 
         self.faiss_pool.add(self.gallery_embedding)
         top_k_scores_all, top_k_indexes_all = self.faiss_pool.search(self.queries_embedding, k=self.top_k)
@@ -271,25 +228,23 @@ class RetrievalScore():
         
         for idx, (top_k_scores, top_k_indexes) in enumerate(zip(top_k_scores_all, top_k_indexes_all)):
           
-            current_post_id = self.queries_post_ids[idx]
-            target_post_ids = self.targets_post_ids[idx]
+            current_id = self.queries_ids[idx]
+            target_ids = self.targets_ids[idx]
 
-            pred_post_ids = self.gallery_post_ids[top_k_indexes]
-            pred_post_ids = pred_post_ids.tolist()
+            pred_ids = self.gallery_ids[top_k_indexes]
+            pred_ids = pred_ids.tolist()
 
             if self.save_results:
-                self.post_results_dict[current_post_id] = {
-                    'image_ids': pred_post_ids,
-                    'target_ids': target_post_ids,
+                self.results_dict[current_id] = {
+                    'image_ids': pred_ids,
+                    'target_ids': target_ids,
                     'scores': top_k_scores 
                 }
             
             for metric_name in self.metric_names:
                 metric_fn = metrics_mapping[metric_name]
-                score = metric_fn([target_post_ids], pred_post_ids)
-                total_scores[metric_name].append(score)
-
-        return total_scores
+                metric_fn.update(pred_ids, [target_ids])
+                
 
     def compute(self):
         print("Extracting features...")
@@ -299,31 +254,27 @@ class RetrievalScore():
                 self.compute_gallery()
             else:
                 self.gallery_embedding = self.queries_embedding.copy()
-                self.gallery_post_ids = self.queries_post_ids.copy()
+                self.gallery_ids = self.queries_ids.copy()
                 
         if USE_FAISS:
-            total_scores = self.compute_faiss()
+            self.compute_faiss()
         else:
             total_scores = self.compute_default()
 
         # Save results for visualization later
         if self.save_results:
             print("Saving retrieval results...")
-            save_results(self.post_results_dict)
-          
-        result_dict={
-            k:np.mean(v) for k,v in total_scores.items()
-        }
-
+            save_results(self.results_dict)
+        
+        result_dict = {}
+        for metric_name in self.metric_names:
+            metric_fn = metrics_mapping[metric_name]
+            result_dict.update(metric_fn.value())
+        
         return result_dict
             
     def value(self):
         result_dict = self.compute()
-
-        result_dict = {
-            k:np.round(float(v), 5) for k,v in result_dict.items()
-        }
-
         return result_dict
 
     def __str__(self):
