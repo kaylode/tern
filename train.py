@@ -38,6 +38,7 @@ def train(args, config):
             valset, valset, 
             max_distance = 1.3,
             top_k=10,
+            metric_names=['FT', "ST", "NN", "MAP@10", "F1@10", "R@1", "R@5", "R@10"],
             dimension=config.model['args']['d_embed'],
             save_results=True)
 

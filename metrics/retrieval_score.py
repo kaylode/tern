@@ -63,7 +63,7 @@ metrics_mapping = {
     'NN': NearestNeighborMetric(),
     'MAP@10': MAPMetric(k=10),
     'F1@10': F1Metric(k=10),
-    'R@1': RecallMetric(k=10),
+    'R@1': RecallMetric(k=1),
     'R@5': RecallMetric(k=5),
     'R@10': RecallMetric(k=10),
 }
