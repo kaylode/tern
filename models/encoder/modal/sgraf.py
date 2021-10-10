@@ -1,6 +1,6 @@
 from models.encoder.utils import init_xavier, l2norm
 from .base import CrossModal
-from models.encoder.visual import EncoderVIT
+from models.encoder import EncoderBottomUp, EncoderBERT
 from models.encoder.projection import ModalProjection
 from models.modules.graph import get_sgr_module
 
@@ -9,13 +9,16 @@ class SGRAF(CrossModal):
     Architecture idea based on Similarity Graph Reasoning and Attention Filtration
     Source: https://arxiv.org/abs/2101.01368
     """
-    def __init__(self, d_model, d_embed, aggregation, sim_dim, sgr_step, **kwargs):
+    def __init__(self, d_model, d_embed, aggregation, sim_dim, sgr_step, precomp_bert, **kwargs):
         super(SGRAF, self).__init__()
         self.name = "SGRAF"
         self.aggregation = aggregation
 
-        self.encoder_v = EncoderVIT()
-        self.encoder_l = get_sgr_module(sim_dim, sgr_step)
+        self.encoder_v = EncoderBottomUp(feat_dim=2048, d_model=d_model)
+        self.encoder_l = EncoderBERT(precomp=precomp_bert)
+
+        self.reasoning_v = get_sgr_module(sim_dim, sgr_step)
+        self.reasoning_l = get_sgr_module(sim_dim, sgr_step)
         
         self.img_proj = ModalProjection(in_dim=d_model, out_dim=d_embed)
         self.cap_proj = ModalProjection(in_dim=d_model, out_dim=d_embed)
@@ -25,15 +28,17 @@ class SGRAF(CrossModal):
         init_xavier(self)
 
     def forward_batch(self, batch, device):
-        visual_inputs = batch['imgs'].to(device)
-        lang_inputs = batch['texts']
+        src_inputs = batch['feats'].to(device)
+        loc_src_inputs = batch['loc_feats'].to(device)
+        lang_src_inputs = batch['lang_feats'].to(device)
 
         outputs_l, outputs_v = self.forward(
-            visual_inputs=visual_inputs, 
-            lang_inputs=lang_inputs)
+            visual_inputs=src_inputs, 
+            spatial_inputs=loc_src_inputs, 
+            lang_inputs=lang_src_inputs)
 
         return outputs_l, outputs_v
-
+        
     def forward(self, visual_inputs, spatial_inputs, lang_inputs):
         feats_v = self.visual_forward(visual_inputs, spatial_inputs)
         feats_l = self.lang_forward(lang_inputs)

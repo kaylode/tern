@@ -2,24 +2,22 @@ settings:
   #################   DATASET CONFIG   ###################
 
   trainloader:
-    name: CocoLoader
+    name: NumpyFeatureLoader
     args:
       root_dir: "/content/data/flickr30k_images/flickr30k_images"
       ann_path: "/content/data/train.json"
-      image_size: 224
-      keep_ratio: False
-      type: "train"
-      batch_size: 32
+      feat_dir: "/content/data/bottom_up"
+      text_dir: "/content/data/bert_features"
+      batch_size: 128
 
   valloader:
-    name: RawCocoLoader
+    name: RawNumpyFeatureLoader
     args:
       root_dir: "/content/data/flickr30k_images/flickr30k_images"
       ann_path: "/content/data/val.json"
-      image_size: 224
-      keep_ratio: False
-      type: "val"
-      batch_size: 32
+      feat_dir: "/content/data/bottom_up"
+      text_dir: "/content/data/bert_features"
+      batch_size: 128
       num_workers: 2
 
   #################   TRAINING CONFIG   ###################
