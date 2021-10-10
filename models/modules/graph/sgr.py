@@ -38,5 +38,6 @@ class SGR(nn.Module):
                 m.bias.data.zero_()
 
 def get_sgr_module(sim_dim, sgr_step):
-    module = nn.ModuleList([SGR(sim_dim) for i in range(sgr_step)])
+    modules = [SGR(sim_dim) for i in range(sgr_step)]
+    module = nn.Sequential(*modules)
     return module
