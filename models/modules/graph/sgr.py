@@ -36,3 +36,7 @@ class SGR(nn.Module):
             elif isinstance(m, nn.BatchNorm1d):
                 m.weight.data.fill_(1)
                 m.bias.data.zero_()
+
+def get_sgr_module(sim_dim, sgr_step):
+    module = nn.ModuleList([SGR(sim_dim) for i in range(sgr_step)])
+    return module

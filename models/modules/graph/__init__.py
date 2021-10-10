@@ -1,1 +1,1 @@
-from .sgr import SGR
+from .sgr import SGR, get_sgr_module
