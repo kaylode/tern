@@ -2,7 +2,7 @@ settings:
   #################   DATASET CONFIG   ###################
 
   trainloader:
-    name: CLIPFeatureLoader
+    name: CLIPLoader
     args:
       root_dir: "/content/data/flickr30k_images/flickr30k_images"
       ann_path: "/content/data/train.json"
@@ -10,13 +10,26 @@ settings:
       batch_size: 128
 
   valloader:
-    name: CLIPFeatureLoader
+    name: CLIPLoader
     args:
       root_dir: "/content/data/flickr30k_images/flickr30k_images"
       ann_path: "/content/data/val.json"
       model_name: "ViT-B/32"
       batch_size: 128
       num_workers: 2
+
+  ## Those dataset for metric evaluation
+  valset1:
+    name: CLIPImageSet
+    args:
+      root_dir: "/content/data/flickr30k_images/flickr30k_images"
+      ann_path: "/content/data/val.json"
+      model_name: "ViT-B/32"
+      
+  valset2:
+    name: CLIPTextSet
+    args:
+      ann_path: "/content/data/val.json"
 
   #################   TRAINING CONFIG   ###################
   

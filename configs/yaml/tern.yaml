@@ -20,6 +20,19 @@ settings:
       batch_size: 128
       num_workers: 2
 
+  ## Those dataset for metric evaluation
+  valset1:
+    name: BottomUpSet
+    args:
+      feat_dir: "/content/data/bottom_up"
+      ann_path: "/content/data/val.json"
+      
+  valset2:
+    name: BertSet
+    args:
+      feat_dir: "/content/data/bert_features"
+      ann_path: "/content/data/val.json"
+
   #################   TRAINING CONFIG   ###################
   
   globals:
