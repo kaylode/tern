@@ -34,18 +34,13 @@ def train(args, config):
 
     criterion = get_loss_fn(config.loss)
 
-    imageset = BottomUpSet(
-      ann_path=valset.ann_path, 
-      feat_dir=valset.feat_dir)
-
-    textset = BertSet(
-      ann_path=valset.ann_path, 
-      feat_dir=valset.text_dir)
+    valset1 = get_instance(config.valset1)
+    valset2 = get_instance(config.valset2)
 
     metric = RetrievalScore(
-            imageset, textset, 
+            valset1, valset2, 
             max_distance = 1.3,
-            top_k=10,
+            top_k=args.top_k,
             metric_names=["R@1", "R@5", "R@10"],
             dimension=config.model['args']['d_embed'],
             save_results=True)

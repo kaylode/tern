@@ -116,7 +116,7 @@ class RawNumpyFeatureLoader(DataLoader):
             collate_fn=self.collate_fn,
             **kwargs)       
 
-class CLIPFeatureLoader(DataLoader):
+class CLIPLoader(DataLoader):
     """
     Use DataLoader to make texts into batch
     """
@@ -132,7 +132,7 @@ class CLIPFeatureLoader(DataLoader):
 
         self.collate_fn = self.dataset.collate_fn
         
-        super(CLIPFeatureLoader, self).__init__(
+        super(CLIPLoader, self).__init__(
             self.dataset,
             batch_size=batch_size,
             pin_memory=True,

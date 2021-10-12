@@ -18,21 +18,13 @@ def train(args, config):
     device = torch.device("cuda" if torch.cuda.is_available() else 'cpu')
     devices_info = get_devices_info(config.globals['gpu_devices'])
     
-    valloader = get_instance(config.valloader)
-    valset = valloader.dataset
-
     net = get_instance(config.model, device=device)
 
-    imageset = BottomUpSet(
-      ann_path=valset.ann_path, 
-      feat_dir=valset.feat_dir)
-
-    textset = BertSet(
-      ann_path=valset.ann_path, 
-      feat_dir=valset.text_dir)
+    valset1 = get_instance(config.valset1)
+    valset2 = get_instance(config.valset2)
 
     metric = RetrievalScore(
-            imageset, textset, 
+            valset1, valset2, 
             max_distance = 1.3,
             top_k=args.top_k,
             metric_names=["R@1", "R@5", "R@10"],
@@ -44,11 +36,6 @@ def train(args, config):
     if args.weight is not None:                
         load_checkpoint(model, args.weight)
         
-    print()
-    print("##########   DATASET INFO   ##########")
-    print("Valset: ")
-    print(valset)
-    print()
     print(config)
     print(f'Evaluating with {num_gpus} gpu(s): ')
     print(devices_info)
