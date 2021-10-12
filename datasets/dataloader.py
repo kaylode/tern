@@ -4,7 +4,7 @@ from torch.utils.data import DataLoader
 from torch.utils.data.sampler import Sampler
 from torchtext.legacy.data import BucketIterator
 from transformers import AutoTokenizer
-from .cocoset import NumpyFeatureDataset, CocoDataset
+from .cocoset import NumpyFeatureDataset, CocoDataset, CLIPDataset
 
 class CocoLoader(BucketIterator):
     """
@@ -115,3 +115,26 @@ class RawNumpyFeatureLoader(DataLoader):
             pin_memory=True,
             collate_fn=self.collate_fn,
             **kwargs)       
+
+class CLIPFeatureLoader(DataLoader):
+    """
+    Use DataLoader to make texts into batch
+    """
+    def __init__(self, 
+                batch_size,
+                root_dir,
+                ann_path, 
+                model_name,
+                **kwargs):
+       
+        self.dataset = CLIPDataset(
+            root_dir, ann_path, model_name)
+
+        self.collate_fn = self.dataset.collate_fn
+        
+        super(CLIPFeatureLoader, self).__init__(
+            self.dataset,
+            batch_size=batch_size,
+            pin_memory=True,
+            collate_fn=self.collate_fn,
+            **kwargs) 

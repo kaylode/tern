@@ -1,9 +1,11 @@
 import os
 import cv2
+import clip
 import torch
 import random
 import numpy as np
 import pandas as pd
+from PIL import Image
 import matplotlib.pyplot as plt
 
 import albumentations as A
@@ -314,6 +316,89 @@ class NumpyFeatureDataset(Dataset):
         s1 = "Number of images: " + str(len(self.image_ids)) + '\n'
         s2 = "Number of texts: " + str(len(self.coco.getAnnIds())) + '\n'
         return s1 + s2
+
+
+class CLIPDataset(Dataset):
+    """
+    Numpy bottom up feature dataset
+    """
+    def __init__(self, root_dir, ann_path, model_name):
+        
+        _, self.transforms = clip.load(model_name)
+        self.root_dir = root_dir
+        self.ann_path = ann_path
+        self.coco = COCO(ann_path)
+        self.image_ids = self.coco.getImgIds()
+
+    def __len__(self):
+        return len(self.image_ids)
+
+    def load_image(self, image_index):
+        image_info = self.coco.loadImgs(self.image_ids[image_index])[0]
+        image_path = os.path.join(self.root_dir, image_info['file_name'])
+        return image_path
+
+    def load_annotations(self, image_index, return_all=False):
+        # get ground truth annotations
+        ann_id = self.coco.getAnnIds(imgIds=self.image_ids[image_index])
+
+        if not return_all:
+            ann_id = random.choice(ann_id)
+            anns = self.coco.loadAnns(ann_id)[0]['caption']
+        else:
+            anns = self.coco.loadAnns(ann_id)
+            anns = [i['caption'] for i in anns]
+        return anns, ann_id
+
+    def load_image_by_id(self, image_id):
+        image_infos = self.coco.loadImgs(image_id)
+        image_path = [os.path.join(self.root_dir, i['file_name']) for i in image_infos]
+        return image_path
+
+    def load_annotations_by_id(self, ann_id):
+        anns = self.coco.loadAnns(ann_id)
+        anns = [i['caption'] for i in anns]
+        return anns
+
+    def __getitem__(self, index):
+        image_id = self.image_ids[index]
+        image_path = self.load_image(index)
+        text, ann_id = self.load_annotations(index)
+
+        return {
+            'image_id': image_id,
+            'ann_id': ann_id,
+            'image_path': image_path,
+            'text': text,
+        }
+
+    def collate_fn(self, batch):
+        
+        image_paths = [s['image_path'] for s in batch]
+        image_ids = [s['image_id'] for s in batch]
+        ann_ids = [s['ann_id'] for s in batch]
+        
+        image_names = []
+        ori_imgs = []
+        for image_path in image_paths:
+            image_names.append(os.path.basename(image_path))
+
+        texts = [s['text'] for s in batch]
+
+        imgs = [self.transforms(Image.open(image_path)) for image_path in image_paths]
+        imgs = torch.stack(imgs, dim=0)
+
+        tokens = clip.tokenize(texts, truncate=True)
+
+        return {
+            'image_ids': image_ids,
+            'ann_ids': ann_ids,
+            'image_names': image_names,
+            'ori_imgs': ori_imgs,
+            'imgs': imgs,
+            'tgt_texts_raw': texts,
+            'texts': tokens,
+        }
 
 
 class BottomUpSet(Dataset):
