@@ -104,16 +104,16 @@ class RetrievalScore():
         self.text_ids = []
         self.image_target_ids = []
 
-        # Distance function
-        self.dist_func = get_dist_func('cosine')
-
         if self.save_results:
             self.results_dict = {}
 
         if USE_FAISS:
             res = faiss.StandardGpuResources()  # use a single GPU
-            self.faiss_pool = faiss.IndexFlatL2(dimension)
+            self.faiss_pool = faiss.IndexFlatIP(dimension)
             self.faiss_pool = faiss.index_cpu_to_gpu(res, 0, self.faiss_pool)
+        else:
+            # Distance function
+            self.dist_func = get_dist_func('cosine')
 
     def reset(self):
         self.image_embedding = [] 
