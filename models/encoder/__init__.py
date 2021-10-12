@@ -1,4 +1,4 @@
 from .language import EncoderBERT
 from .visual import EncoderBottomUp, EncoderVIT
 from .projection import *
-from .modal import ViTR, TERN, SGRAF
+from .modal import ViTR, TERN, SGRAF, CLIP
