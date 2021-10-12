@@ -1,4 +1,5 @@
 import clip
+from models.encoder.utils import l2norm
 from .base import CrossModal
 
 class CLIP(CrossModal):
@@ -10,7 +11,7 @@ class CLIP(CrossModal):
         super(CLIP, self).__init__()
         self.name = "CLIP"
 
-        self.model, _ = clip.load(name)
+        self.model, self.transforms = clip.load(name)
         self.model.eval()
       
     def forward_batch(self, batch, device):
@@ -29,19 +30,23 @@ class CLIP(CrossModal):
         return feats_l, feats_v
 
     def visual_forward(self, visual_inputs):
-        feats_v = self.model.encode_image(visual_inputs) #[B x 512]    
+        feats_v = self.model.encode_image(visual_inputs) #[B x 512]
+        feats_v = l2norm(feats_v)    
         return feats_v
 
     def lang_forward(self, lang_inputs):
         feats_l = self.model.encode_text(lang_inputs) #[B x 512]  
+        feats_l = l2norm(feats_l) 
         return feats_l
 
     def visual_forward_batch(self, batch, device):
         visual_inputs = batch['imgs'].to(device)
         feats_v = self.model.encode_image(visual_inputs) #[B x 512]   
+        feats_v = l2norm(feats_v)    
         return feats_v
 
     def lang_forward_batch(self, batch, device):
         lang_inputs = batch['texts'].to(device)
         feats_l = self.model.encode_text(lang_inputs) #[B x 512]  
+        feats_l = l2norm(feats_l)
         return feats_l
