@@ -99,7 +99,7 @@ def train(args, config):
     model.eval()
 
     res = faiss.StandardGpuResources()  # use a single GPU
-    faiss_pool = faiss.IndexFlatL2(config.model['d_embed'])
+    faiss_pool = faiss.IndexFlatIP(config.model['d_embed'])
     faiss_pool = faiss.index_cpu_to_gpu(res, 0, faiss_pool)
 
     query_embeddings = make_query_embeddings(args.text, model, device)
