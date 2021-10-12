@@ -1,4 +1,4 @@
-import torch
+import numpy as np
 from .base_model import BaseModel
 
 import sys
@@ -43,8 +43,8 @@ class Retriever(BaseModel):
 
     def get_visual_embeddings(self, batch):
         outputs_v = self.model.visual_forward_batch(batch, self.device)
-        return outputs_v.cpu().detach().numpy()
+        return outputs_v.cpu().detach().numpy().astype(np.float32)
 
     def get_lang_embeddings(self, batch):
         outputs_l = self.model.lang_forward_batch(batch, self.device)
-        return outputs_l.cpu().detach().numpy()
+        return outputs_l.cpu().detach().numpy().astype(np.float32)
