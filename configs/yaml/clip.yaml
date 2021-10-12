@@ -29,6 +29,7 @@ settings:
   model:
     name: "CLIP"
     args:
+      d_embed: 512                      # output_dim
       name: "ViT-B/32"
 
 
