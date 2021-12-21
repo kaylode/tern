@@ -11,20 +11,11 @@ class CrossModal(nn.Module):
         super(CrossModal, self).__init__()
         self.name = None
 
-    def forward_batch(self, batch, device):
+    def forward(self, batch, device):
         raise NotImplementedError("Abtract class method is not implemented")
 
-    def forward(self, visual_inputs, spatial_inputs, lang_inputs):
+    def visual_forward(self, batch, device):
         raise NotImplementedError("Abtract class method is not implemented")
 
-    def visual_forward(self, visual_inputs, spatial_inputs):
-        raise NotImplementedError("Abtract class method is not implemented")
-
-    def lang_forward(self, lang_inputs):
-        raise NotImplementedError("Abtract class method is not implemented")
-
-    def visual_forward_batch(self, batch, device):
-        raise NotImplementedError("Abtract class method is not implemented")
-
-    def lang_forward_batch(self, batch, device):
+    def lang_forward(self, batch, device):
         raise NotImplementedError("Abtract class method is not implemented")
