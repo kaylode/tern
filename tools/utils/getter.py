@@ -1,10 +1,10 @@
 from datasets import *
-from metrics import *
+from modules.metrics import *
 from datasets import *
-from models import *
-from losses import *
+from modules.models import *
+from modules.losses import *
 from trainer import *
-from augmentations import *
+from datasets.augmentations import *
 from loggers import *
 from configs import *
 
@@ -28,7 +28,7 @@ from utils.cuda import NativeScaler, get_devices_info
 
 import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
-from augmentations.transforms import MEAN, STD, get_resize_augmentation
+from datasets.augmentations.transforms import MEAN, STD, get_resize_augmentation
 from transformers import AutoTokenizer
 
 from .random_seed import seed_everything

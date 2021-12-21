@@ -8,7 +8,7 @@ from tqdm import tqdm
 from configs import Config
 import matplotlib.pyplot as plt
 from pycocotools.coco import COCO
-from models import EncoderBERT, TERN
+from modules.models import EncoderBERT, TERN
 from datasets.utils import make_feature_batch
 
 

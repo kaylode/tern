@@ -16,7 +16,7 @@ from pycocotools.coco import COCO
 from torch.utils.data import Dataset, DataLoader
 
 from .utils import create_masks, make_feature_batch
-from utils.utils import draw_image_caption
+from tools.utils.utils import draw_image_caption
 
 class CocoDataset(Dataset):
     """
