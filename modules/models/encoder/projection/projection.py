@@ -1,7 +1,7 @@
 import torch.nn as nn
 
-from models.encoder.utils import get_clones
-from models.modules.transformer import EncoderLayer, LayerNorm
+from modules.models.encoder.utils import get_clones
+from modules.models.modules.transformer import EncoderLayer, LayerNorm
 
 class TransformerEncoder(nn.Module):
     """

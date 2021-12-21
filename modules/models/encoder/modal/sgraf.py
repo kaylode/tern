@@ -1,8 +1,8 @@
-from models.encoder.utils import init_xavier, l2norm
+from modules.models.encoder.utils import init_xavier, l2norm
 from .base import CrossModal
-from models.encoder import EncoderBottomUp, EncoderBERT
-from models.encoder.projection import ModalProjection
-from models.modules.graph import get_sgr_module
+from modules.models.encoder import EncoderBottomUp, EncoderBERT
+from modules.models.encoder.projection import ModalProjection
+from modules.models.modules.graph import get_sgr_module
 
 class SGRAF(CrossModal):
     """

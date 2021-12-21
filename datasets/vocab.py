@@ -1,6 +1,6 @@
 import os
 import pickle
-from utils.preprocess import *
+from tools.utils.preprocess import *
 import matplotlib.pyplot as plt
 from pycocotools.coco import COCO
 

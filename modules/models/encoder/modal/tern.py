@@ -1,6 +1,6 @@
-from models.encoder import EncoderBottomUp, EncoderBERT
-from models.encoder.projection import TransformerEncoder, ModalProjection
-from models.encoder.utils import init_xavier, l2norm
+from modules.models.encoder import EncoderBottomUp, EncoderBERT
+from modules.models.encoder.projection import TransformerEncoder, ModalProjection
+from modules.models.encoder.utils import init_xavier, l2norm
 from .base import CrossModal
 
 class TERN(CrossModal):

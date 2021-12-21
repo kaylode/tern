@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from models.encoder.projection import FeatureEmbedding, SpatialEncoding
+from modules.models.encoder.projection import FeatureEmbedding, SpatialEncoding
 
 class EncoderBottomUp(nn.Module):
     """
