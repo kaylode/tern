@@ -9,7 +9,7 @@ import torch
 from torch.cuda import amp
 
 from .checkpoint import Checkpoint
-from loggers.loggers import Logger
+from tools.loggers.loggers import Logger
 
 
 class Trainer():
@@ -200,7 +200,7 @@ class Trainer():
 
         # Save model gives best average R@10 score
         if metric_dict['t2i/R@10'] > self.best_value:
-            self.best_value = metric_dict['R@10']
+            self.best_value = metric_dict['t2i/R@10']
             self.checkpoint.save(
                 self.model, 
                 save_mode = 'best', 

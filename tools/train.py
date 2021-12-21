@@ -9,6 +9,7 @@ parser.add_argument('--save_interval', type=int, default=1000, help='Number of s
 parser.add_argument('--resume', type=str, default=None,
                     help='whether to load weights from a checkpoint, set None to initialize')
 parser.add_argument('--saved_path', type=str, default='./weights')
+parser.add_argument('--top_k', type=int, default=10, help='top k validation')
 parser.add_argument('--no_visualization', action='store_false', help='whether to visualize box to ./sample when validating (for debug), default=on')
 
 torch.backends.cudnn.benchmark = True

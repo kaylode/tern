@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
-from augmentations.transforms import get_resize_augmentation, get_augmentation, Denormalize
+from .augmentations.transforms import get_resize_augmentation, get_augmentation, Denormalize
 
 from pycocotools.coco import COCO
 from torch.utils.data import Dataset, DataLoader

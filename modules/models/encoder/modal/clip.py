@@ -1,5 +1,5 @@
 import clip
-from models.encoder.utils import l2norm
+from modules.models.encoder.utils import l2norm
 from .base import CrossModal
 
 class CLIP(CrossModal):

@@ -3,10 +3,10 @@ from modules.metrics import *
 from datasets import *
 from modules.models import *
 from modules.losses import *
-from trainer import *
+from tools.trainer import *
 from datasets.augmentations import *
-from loggers import *
-from configs import *
+from tools.loggers import *
+from tools.configs import *
 
 import os
 import cv2
@@ -23,8 +23,8 @@ import torchvision.models as models
 from torch.optim import SGD, AdamW
 from torch.optim.lr_scheduler import StepLR, CosineAnnealingLR, LambdaLR, ReduceLROnPlateau, OneCycleLR, CosineAnnealingWarmRestarts
 
-from utils.utils import download_pretrained_weights
-from utils.cuda import NativeScaler, get_devices_info
+from .utils import download_pretrained_weights
+from .cuda import NativeScaler, get_devices_info
 
 import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2

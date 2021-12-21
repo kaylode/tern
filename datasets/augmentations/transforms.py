@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
-from configs import Config
+from tools.configs import Config
 
 MEAN = [0.485, 0.456, 0.406]
 STD = [0.229, 0.224, 0.225]
@@ -51,7 +51,7 @@ def get_resize_augmentation(image_size, keep_ratio=False, box_transforms = False
 
 def get_augmentation(_type='train'):
 
-    config = Config('./augmentations/augments.yaml')
+    config = Config('./datasets/augmentations/augments.yaml')
     flip_config = config.flip
     ssr_config = flip_config['shift_scale_crop']
     color_config = config.color
