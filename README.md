@@ -42,6 +42,7 @@ pip install faiss-gpu
 
 
 ## Notebooks
+- [![Notebook](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/17s_J7D9KyalABmmQ6C4AbEa41jD9OhdV?usp=sharing) Inference TERN on Flickr30k dataset
 - [![Notebook](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1z38DL7DxjXC-wH_AhC2NIipubgajOkni?usp=sharing) Use FasterRCNN to extract Bottom Up embeddings 
 - [![Notebook](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/10dRDQkuZ3KZQ_4bwMbevZoiWzP_OVbVJ?usp=sharing) Use BERT to extract text embeddings 
 
