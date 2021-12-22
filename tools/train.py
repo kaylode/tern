@@ -2,7 +2,6 @@ from utils.getter import *
 import argparse
 
 parser = argparse.ArgumentParser('Training Object Detection')
-parser.add_argument('--config', type=str, help='Path to config file')
 parser.add_argument('--print_per_iter', type=int, default=300, help='Number of iteration to print')
 parser.add_argument('--val_interval', type=int, default=2, help='Number of epoches between valing phases')
 parser.add_argument('--save_interval', type=int, default=1000, help='Number of steps between saving')
@@ -109,6 +108,6 @@ def train(args, config):
 if __name__ == '__main__':
     
     args = parser.parse_args()
-    config = Config(f'{args.config}')
+    config = Config("./tools/configs/yaml/tern.yaml")
 
     train(args, config)

@@ -2,7 +2,6 @@ from utils.getter import *
 import argparse
 
 parser = argparse.ArgumentParser('Training Object Detection')
-parser.add_argument('--config', type=str, default=None, help='Path to config file')
 parser.add_argument('--top_k', type=int, default=10, help='Retrieve top k results')
 parser.add_argument('--weight', type=str, default=None,
                     help='whether to load weights from a checkpoint, set None to initialize')
@@ -48,10 +47,8 @@ if __name__ == '__main__':
     
     args = parser.parse_args()
     
-    if args.config is None:
-        config = get_config(args.weight)
-        print("Load configs from weight")   
-    else:
-        config = Config(f'{args.config}')
+    config = get_config(args.weight)
+    print("Load configs from weight")   
+    
 
     train(args, config)
