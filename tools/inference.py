@@ -5,7 +5,7 @@ import faiss
 import argparse
 import numpy as np
 from tqdm import tqdm
-from configs import Config
+from .configs import Config
 import matplotlib.pyplot as plt
 from pycocotools.coco import COCO
 from modules.models import EncoderBERT, TERN
@@ -13,10 +13,14 @@ from datasets.utils import make_feature_batch
 
 
 parser = argparse.ArgumentParser('Retrieve Text-To-Images')
-parser.add_argument('--weight', type=str, default=300, help='weight path file')
+parser.add_argument('--weight', type=str, help='weight path file')
+parser.add_argument('--image_dir', type=str, help='path to image directory')
+parser.add_argument('--ann_path', type=str, help='path to annotation file')
+parser.add_argument('--feat_dir', type=str, help='path to bottom up numpy feature directory ')
 
-def make_gallery_embeddings(config, model, device):
-    coco = COCO(config.ann_path)
+def make_gallery_embeddings(ann_path, feat_dir, model, device):
+
+    coco = COCO(ann_path)
     imgIds = coco.getImgIds()
     img_infos = coco.loadImgs(imgIds)
 
@@ -27,8 +31,12 @@ def make_gallery_embeddings(config, model, device):
     for info in img_infos:
         image_name = info['file_name']
         npy_name = image_name[:-4]+'.npz'
-        npy_loc_paths.append(os.path.join(config.box_path, npy_name))
-        npy_paths.append(os.path.join(config.feat_path, npy_name))
+
+        npy_path = os.path.join(feat_dir, 'data_att', npy_name)
+        npy_loc_path = os.path.join(feat_dir, 'data_box', npy_name)
+
+        npy_loc_paths.append(npy_loc_path)
+        npy_paths.append(npy_path)
 
     batch_feats = []
     batch_loc_feats = []
@@ -48,7 +56,10 @@ def make_gallery_embeddings(config, model, device):
             loc_feats = torch.stack(batch_loc_feats).to(device)
 
             with torch.no_grad():
-                embedding = model.visual_forward(feats, loc_feats)
+                embedding = model.visual_forward({
+                    "feats": feats, 
+                    "loc_feats": loc_feats}, 
+                    device)
             embedding = embedding.cpu().detach().numpy()
             gallery_embeddings.append(embedding)
 
@@ -59,13 +70,11 @@ def make_gallery_embeddings(config, model, device):
     return img_infos, gallery_embeddings
 
 def make_query_embeddings(text, model, device):
-    encoder_text = EncoderBERT(None, None, 0, None, None, precomp=False)
-    outputs = encoder_text(text)
-    outputs = np.array(outputs)
-    outputs = make_feature_batch(outputs)
-    outputs = outputs.to(device)
     with torch.no_grad():
-        feat = model.lang_forward(outputs)
+        feat = model.lang_forward({
+            'texts': text
+        }, device)
+
     feat = feat.cpu().numpy()
     return feat
 
@@ -90,8 +99,11 @@ def show_retrieval(image_dir, infos, top_k_indexes, top_k_scores):
     
     plt.show()
 
-def train(args, config):
+def main(args, config):
     device = torch.device('cuda')
+
+    config.model.update({'precomp_bert': False})
+
     model = TERN(config.model)
 
     model.load_state_dict(torch.load(args.weight)['model'])
@@ -99,18 +111,18 @@ def train(args, config):
     model.eval()
 
     res = faiss.StandardGpuResources()  # use a single GPU
-    faiss_pool = faiss.IndexFlatIP(config.model['d_embed'])
+    faiss_pool = faiss.IndexFlatIP(config.model['args']['d_embed'])
     faiss_pool = faiss.index_cpu_to_gpu(res, 0, faiss_pool)
 
     query_embeddings = make_query_embeddings(args.text, model, device)
-    img_infos, gallery_embeddings = make_gallery_embeddings(config, model, device)
+    img_infos, gallery_embeddings = make_gallery_embeddings(args.ann_path, args.feat_dir, model, device)
 
-    top_k_indexes, top_k_scores = faiss_search(query_embeddings, gallery_embeddings, top_k=10)
-    show_retrieval(config.model['image_dir'], img_infos, top_k_indexes, top_k_scores)
+    top_k_indexes, top_k_scores = faiss_search(faiss_pool, query_embeddings, gallery_embeddings, top_k=10)
+    show_retrieval(args.image_dir, img_infos, top_k_indexes, top_k_scores)
 
 if __name__ == '__main__':
     
     args = parser.parse_args()
-    config = Config(os.path.join('configs','config.yaml'))
+    config = Config("./tools/configs/yaml/tern.yaml")
 
-    train(args, config)
+    main(args, config)

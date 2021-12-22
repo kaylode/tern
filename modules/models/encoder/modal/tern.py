@@ -7,10 +7,11 @@ class TERN(CrossModal):
     """
     Architecture idea based on Transformer Encoder Reasoning Network
     """
-    def __init__(self, d_model, d_embed, d_ff, N_v, N_l, heads, dropout, aggregation, precomp_bert, **kwargs):
+    def __init__(self, d_model, d_embed, d_ff, N_v, N_l, heads, dropout, aggregation, precomp_bert, num_sw_layers, **kwargs):
         super(TERN, self).__init__()
         self.name = "TERN"
         self.aggregation = aggregation
+        self.precomp_bert = precomp_bert
 
         self.encoder_v = EncoderBottomUp(feat_dim=2048, d_model=d_model)
         self.encoder_l = EncoderBERT(precomp=precomp_bert)
@@ -22,7 +23,11 @@ class TERN(CrossModal):
         self.cap_proj = ModalProjection(in_dim=d_model, out_dim=d_embed)
 
         # Shared weight encoders
-        # self.transformer_encoder = TransformerEncoder(d_model=1024, d_ff=2048, N=2, heads=4, dropout=0.1)
+        if num_sw_layers > 0:
+            self.sw_layer = TransformerEncoder(d_model=d_model, d_ff=d_ff, N=num_sw_layers, heads=heads, dropout=dropout)
+        else:
+            self.sw_layer = None
+
         init_xavier(self)
 
     def forward(self, batch, device):
@@ -38,6 +43,9 @@ class TERN(CrossModal):
         outputs_v = self.encoder_v(visual_inputs, spatial_inputs) 
         outputs_v = self.reasoning_v(outputs_v)                    #[B x 37 x d_model] (append CLS token to first)
 
+        if self.sw_layer is not None:
+            outputs_v = self.sw_layer(outputs_v)
+
         if self.aggregation == 'mean':
             feats_v = self.img_proj(outputs_v).mean(dim=1)
         if self.aggregation == 'first':
@@ -47,9 +55,17 @@ class TERN(CrossModal):
         return feats_v
 
     def lang_forward(self, batch, device):
-        lang_inputs = batch['lang_feats'].to(device)
-        outputs_l = self.encoder_l(lang_inputs) 
+        if self.precomp_bert:
+            lang_inputs = batch['lang_feats'].to(device)
+            outputs_l = self.encoder_l(lang_inputs) 
+        else:
+            outputs_l = self.encoder_l(batch['texts'])
+            outputs_l = outputs_l.to(device)
+
         outputs_l = self.reasoning_l(outputs_l) #[B x Length+2 x d_model] (plus 2 special tokens)
+        
+        if self.sw_layer is not None:
+            outputs_l = self.sw_layer(outputs_l)
 
         if self.aggregation == 'mean':
             feats_l = self.cap_proj(outputs_l).mean(dim=1)

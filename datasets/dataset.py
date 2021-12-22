@@ -21,8 +21,7 @@ class CocoDataset(Dataset):
     def __init__(self, 
             root_dir, ann_path, 
             image_size=224, 
-            keep_ratio=False,
-            type='train'):
+            keep_ratio=False):
 
         self.patch_size = 16
         self.root_dir = root_dir
@@ -31,7 +30,7 @@ class CocoDataset(Dataset):
 
         self.transforms = A.Compose([
             get_resize_augmentation(self.image_size, keep_ratio=keep_ratio),
-            get_augmentation(_type=type)
+            get_augmentation()
         ])
 
         self.coco = COCO(ann_path)

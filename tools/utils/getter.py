@@ -29,7 +29,6 @@ from .cuda import NativeScaler, get_devices_info
 import albumentations as A
 from albumentations.pytorch.transforms import ToTensorV2
 from datasets.augmentations.transforms import MEAN, STD, get_resize_augmentation
-from transformers import AutoTokenizer
 
 from .random_seed import seed_everything
 
