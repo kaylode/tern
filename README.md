@@ -32,6 +32,8 @@ apt install libomp-dev
 pip install faiss-gpu
 ```
 
+- Specify dataset paths and configuration in the [config file](./tools/configs/yaml/tern.yaml)
+
 - For training
 ```
 PYTHONPATH=. python tools/train.py 
@@ -55,7 +57,7 @@ PYTHONPATH=. python tools/eval.py \
 
 ## Results
 
-- Validation m on Flickr30k dataset:
+- Validation m on Flickr30k dataset (trained for 100 epochs):
 
 Model | Weights | i2t/R@10 | t2i/R@10
 --- | --- | --- | ---
