@@ -8,16 +8,18 @@
 ## Metrics
 https://amitness.com/2020/08/information-retrieval-evaluation/
 
+## Datasets
 
-## Installation
+
+## Execution
+
+- Installation
 
 ```
 pip install -r requirements.txt
 apt install libomp-dev
 pip install faiss-gpu
 ```
-
-## Execution
 
 - For training
 ```
