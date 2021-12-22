@@ -1,6 +1,5 @@
 import os
 import time
-from matplotlib.pyplot import show
 import numpy as np
 from tqdm import tqdm
 import pandas as pd

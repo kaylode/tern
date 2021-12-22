@@ -49,53 +49,11 @@ def get_resize_augmentation(image_size, keep_ratio=False, box_transforms = False
             ])
         
 
-def get_augmentation(_type='train'):
-
-    config = Config('./datasets/augmentations/augments.yaml')
-    flip_config = config.flip
-    ssr_config = flip_config['shift_scale_crop']
-    color_config = config.color
-    quality_config = config.quality
-
-    transforms_list = [
-
-        A.HorizontalFlip(p=flip_config['hflip']),
-    
-        A.RandomBrightnessContrast(
-            brightness_limit=color_config['brightness'], 
-            contrast_limit=color_config['contrast'], 
-            p=0.5),
-
-        A.OneOf([
-            A.IAASharpen(p=quality_config['sharpen']), 
-            A.Compose([
-                A.FromFloat(dtype='uint8', p=1),
-                A.CLAHE(clip_limit=2.0, tile_grid_size=(8,8), p=quality_config['clahe']),
-                A.ToFloat(p=1),
-            ])           
-        ], p=quality_config['prob']),
-        
-        # A.RandomSizedCrop(min_max_height=(800, 800), height=1024, width=1024, p=0.5),
-        A.ShiftScaleRotate(
-            shift_limit=ssr_config['shift_limit'], 
-            scale_limit=ssr_config['scale_limit'], 
-            rotate_limit=ssr_config['rotate_limit'], 
-            border_mode=cv2.BORDER_CONSTANT,
-            value=0,
-            p=ssr_config['prob']),
-    ]
-        
-    transforms_list += [
-        A.Normalize(mean=MEAN, std=STD, max_pixel_value=1.0, p=1.0),
-        ToTensorV2(p=1.0)
-    ]
-
-    train_transforms = A.Compose(transforms_list)
+def get_augmentation():
 
     val_transforms = A.Compose([
         A.Normalize(mean=MEAN, std=STD, max_pixel_value=1.0, p=1.0),
         ToTensorV2(p=1.0)
     ])
     
-
-    return train_transforms if _type == 'train' else val_transforms
+    return val_transforms

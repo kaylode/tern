@@ -92,15 +92,6 @@ def get_epoch_iters(path):
 
     return epoch_idx, iter_idx, best_value
 
-def get_class_names(path):
-    """
-    Get class name from weight 
-    """
-    state = torch.load(path)
-    class_names = state['class_names'] if 'class_names' in state.keys() else None
-    num_classes = len(class_names) if class_names is not None else 1
-    return class_names, num_classes
-
 def get_config(path, ignore_keys=[]):
     """
     Load config from weight

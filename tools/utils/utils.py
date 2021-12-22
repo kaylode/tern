@@ -18,24 +18,6 @@ weight_url = {}
 def download_pretrained_weights(name, cached=None):
     return download_weights(weight_url[name], cached)
     
-def crop_box(image, box, expand=0):
-    #xywh
-    h,w,c = image.shape
-    # expand box a little
-    new_box = box.copy()
-    new_box[0] -= expand
-    new_box[1] -= expand
-    new_box[2] += expand
-    new_box[3] += expand
-
-    new_box[0] = max(0, new_box[0])
-    new_box[1] = max(0, new_box[1])
-    new_box[2] = min(w, new_box[0]+new_box[2])
-    new_box[3] = min(h, new_box[1]+new_box[3])
-
-    #xyxy box, cv2 image h,w,c
-    return image[int(new_box[1]):int(new_box[3]), int(new_box[0]):int(new_box[2]), :]
-
 def draw_image_caption(image, text, image_name=None, figsize=(10,10)):
 
     plt.close('all')
